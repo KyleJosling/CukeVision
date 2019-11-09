@@ -14,8 +14,8 @@
 
 // Constants
 const int CAM_FPS = 30;                                 // Camera capture rate
-const std::string LEFT_TOPIC_NAME = "raw_left_image";   // Left topic name
-const std::string RIGHT_TOPIC_NAME = "raw_right_image"; // Right topic name
+const std::string LEFT_TOPIC_NAME = "/image_left";       // Left topic name
+const std::string RIGHT_TOPIC_NAME = "/image_right";     // Right topic name
 const int ADVERTISE_QUEUE_SIZE = 1;                     // Advertising queue size
 const int PUBLISH_SPEED = 1;                            // Loop rate
 
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     #endif
 
     // OpenCV capture object
-    cv::VideoCapture cap(1);
+    cv::VideoCapture cap(0);
 
     // CV frame object
     cv::Mat frame;
@@ -59,17 +59,17 @@ int main(int argc, char** argv) {
     
 
     while (ros::ok()) {
+
         cap >> frame;
 
         // Pack messages TODO will eventually be two different images
-        // left_image_msg  = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
+        left_image_msg  = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
         // right_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
-        // 
-        // leftPub.publish(left_image_msg);
+        
+        leftPub.publish(left_image_msg);
         // rightPub.publish(right_image_msg);
 
-
-        ros::spinOnce();
+        //ros::spinOnce();
         loop_rate.sleep();
         
         #ifdef GUI

@@ -36,7 +36,7 @@ MESSAGE(WARNING "library dirs ${OpenCV_LIBRARIES} ")
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  ObjectMsg.msg
+  boundingBoxMsg.msg
 )
 
 # Generate added messages and services with any dependencies listed here

@@ -17,23 +17,29 @@
 #include <stdio.h>
 
 #include "cuke_vision/detectObject.hpp"
+#include "cuke_vision/boundingBoxMsg.h"
 
 // Remove the bounding boxes with low confidence using non-maxima suppression
 void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& out);
 
-// Get the names of the output layers
-std::vector<cv::String> getOutputsNames(const cv::dnn::Net& net);
-
-class object_detector {
+class objectDetector {
 
     public:
 
         // Initialization list
-        object_detector():
+        objectDetector():
 
         // Initialize image transport instance
         it(nH) { 
             
+            // Initialize publisher 
+            boundingBoxPub = nH.advertise<cuke_vision::boundingBoxMsg>(boxTopic, 1000);
+
+            // Initialize subscriber
+            leftImageSub = it.subscribe(leftImageTopic, 1, &objectDetector::imageCallback, this);
+            // rightImageSub = it.subscribe(rightImageTopic, 1, &objectDetector::imageCallback, this);
+
+
             // Load classes
             std::string line;
             std::ifstream ifs(classesFile.c_str());
@@ -52,45 +58,18 @@ class object_detector {
 
         }
 
-        void imageCallback(const sensor_msgs::ImageConstPtr &image_msg) {
-
-            try {
-
-                frame = cv_bridge::toCvCopy(image_msg, "bgr8")->image;
-
-                // Create a 4D blob from a frame.
-                cv::dnn::blobFromImage(frame, blob, 1/255.0, cvSize(inpWidth, inpHeight), cv::Scalar(0,0,0), true, false);
-
-                //Sets the input to the network
-                net.setInput(blob);
-
-                // Runs the forward pass to get output of the output layers
-                std::vector<cv::Mat> outs;
-                // TODO is this right? old function was causing linker errors 
-                net.forward(outs, getOutputsNames(net));
-
-                // Remove the bounding boxes with low confidence
-                postprocess(frame, outs);
-
-                // Put efficiency information. The function getPerfProfile returns the overall time for inference(t) and the timings for each of the layers(in layersTimes)
-                std::vector<double> layersTimes;
-                double freq = cv::getTickFrequency() / 1000;
-                double t = net.getPerfProfile(layersTimes) / freq;
-                std::string label = cv::format("Inference time for a frame : %.2f ms", t);
-
-                #ifdef GUI
-                cv::putText(frame, label, cv::Point(0, 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255));
-                cv::imshow(kWinName, frame);
-                #endif
-
-            } catch (cv_bridge::Exception &e) {
-                ROS_ERROR("Image encoding error %s", e.what());
-            }
+        ~objectDetector() {
+            
+            #ifdef GUI
+            cv::destroyWindow(kWinName);
+            #endif
         }
+
+        void imageCallback(const sensor_msgs::ImageConstPtr &image_msg);
         
     private:
 
-        const std::string leftImageTopic = "/orig_image_left";
+        const std::string leftImageTopic = "/image_left";
         const std::string boxTopic = "/bounding_boxes";
 
         ros::NodeHandle nH;
@@ -101,7 +80,8 @@ class object_detector {
         image_transport::Subscriber rightImageSub;
 
         // Publisher
-        ros::Publisher objectPub;
+        ros::Publisher boundingBoxPub;
+        cuke_vision::boundingBoxMsg msg;
 
         // Window name
         const std::string kWinName = "Object Detection";
@@ -121,43 +101,107 @@ class object_detector {
         int inpWidth = 416;
         int inpHeight = 416;
 
+        float confThreshold = 0.5; // Confidence threshold
+        float nmsThreshold = 0.4;  // Non-maximum suppression threshold
+
         cv::Mat frame;
         cv::Mat blob;
+
+        // Draw the predicted bounding box
+        void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame);
+
+        // Get the names of the output layers
+        std::vector<cv::String> getOutputsNames(const cv::dnn::Net& net);
+
+        // Remove the bounding boxes with low confidence using non-maxima suppression
+        void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs);
 };
 
-const char* keys =
-"{help h usage ? | | Usage examples: \n\t\t./object_detection_yolo.out --image=dog.jpg \n\t\t./object_detection_yolo.out --video=run_sm.mp4}"
-"{image i        |<none>| input image   }"
-"{video v       |<none>| input video   }";
 
-// Neural network parameters
-float confThreshold = 0.5; // Confidence threshold
-float nmsThreshold = 0.4;  // Non-maximum suppression threshold
-int inpWidth = 416;  // Width of network's input image
-int inpHeight = 416; // Height of network's input image
-std::vector<std::string> classes;
+void objectDetector::imageCallback(const sensor_msgs::ImageConstPtr &image_msg) {
 
+    try {
+        
+        ROS_INFO("Frame received");
 
-// Draw the predicted bounding box
-void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame);
+        frame = cv_bridge::toCvCopy(image_msg, "bgr8")->image;
 
+        // Create a 4D blob from a frame.
+        cv::dnn::blobFromImage(frame, blob, 1/255.0, cvSize(inpWidth, inpHeight), cv::Scalar(0,0,0), true, false);
 
-int main(int argc, char** argv) {
+        //Sets the input to the network
+        net.setInput(blob);
 
-    std::cout << "CV_major : " << CV_MAJOR_VERSION << std::endl;
-    std::cout << "CV_minor : " << CV_MINOR_VERSION << std::endl;
+        // Runs the forward pass to get output of the output layers
+        std::vector<cv::Mat> outs;
+        // TODO is this right? old function was causing linker errors 
+        net.forward(outs, getOutputsNames(net));
 
-    // std::string nodeName = "cuke_vision_node";
-    // ros::init(argc, argv, nodeName);
+        // Remove the bounding boxes with low confidence, publish message
+        postprocess(frame, outs);
 
-    // ardrone_object_tracker ar;
+        // Put efficiency information. The function getPerfProfile returns the overall time for inference(t) and the timings for each of the layers(in layersTimes)
+        std::vector<double> layersTimes;
+        double freq = cv::getTickFrequency() / 1000;
+        double t = net.getPerfProfile(layersTimes) / freq;
+        std::string label = cv::format("Inference time for a frame : %.2f ms", t);
 
-    return 0;
+        #ifdef GUI
+        cv::putText(frame, label, cv::Point(0, 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255));
+        cv::imshow(kWinName, frame);
+        cv::waitKey(30);
+        #endif
+
+    } catch (cv_bridge::Exception &e) {
+        ROS_ERROR("Image encoding error %s", e.what());
+    }
 }
 
-// Remove the bounding boxes with low confidence using non-maxima suppression
-void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs)
+void objectDetector::drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame) {
+
+    //Draw a rectangle displaying the bounding box
+    rectangle(frame, cv::Point(left, top), cv::Point(right, bottom), cv::Scalar(255, 178, 50), 3);
+    
+    //Get the label for the class name and its confidence
+    std::string label = cv::format("%.2f", conf);
+    if (!classes.empty())
+    {
+        CV_Assert(classId < (int)classes.size());
+        label = classes[classId] + ":" + label;
+    } else {
+        std::cout << "Classes r empty" << std::endl;
+    }
+    
+    //Display the label at the top of the bounding box
+    int baseLine;
+    cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+    top = std::max(top, labelSize.height);
+    cv::rectangle(frame, cv::Point(left, top - round(1.5*labelSize.height)), cv::Point(left + round(1.5*labelSize.width), top + baseLine), cv::Scalar(255, 255, 255), cv::FILLED);
+    putText(frame, label, cv::Point(left, top), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0,0,0),1);
+}
+
+
+std::vector<cv::String> objectDetector::getOutputsNames(const cv::dnn::Net& net)
 {
+    static std::vector<cv::String> names;
+    if (names.empty())
+    {
+        //Get the indices of the output layers, i.e. the layers with unconnected outputs
+        std::vector<int> outLayers = net.getUnconnectedOutLayers();
+        
+        //get the names of all the layers in the network
+        std::vector<cv::String> layersNames = net.getLayerNames();
+        
+        // Get the names of the output layers in names
+        names.resize(outLayers.size());
+        for (size_t i = 0; i < outLayers.size(); ++i)
+        names[i] = layersNames[outLayers[i] - 1];
+    }
+    return names;
+}
+
+void objectDetector::postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs) {
+
     std::vector<int> classIds;
     std::vector<float> confidences;
     std::vector<cv::Rect> boxes;
@@ -195,55 +239,39 @@ void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs)
     // lower confidences
     std::vector<int> indices;
     cv::dnn::NMSBoxes(boxes, confidences, confThreshold, nmsThreshold, indices);
-    for (size_t i = 0; i < indices.size(); ++i)
-    {
+    for (size_t i = 0; i < indices.size(); ++i) {
         int idx = indices[i];
         cv::Rect box = boxes[idx];
+        #ifdef GUI
         drawPred(classIds[idx], confidences[idx], box.x, box.y,
                  box.x + box.width, box.y + box.height, frame);
+        #endif
+        
+        // Pack the message
+        msg.x.push_back(box.x);
+        // msg.y[i] = box.y;
+        // msg.height[i] = box.height;
+        // msg.width[i] = box.width;
+
     }
+
+    // boundingBoxPub.publish(msg);
 }
 
-// Draw the predicted bounding box
-void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame)
-{
-    //Draw a rectangle displaying the bounding box
-    rectangle(frame, cv::Point(left, top), cv::Point(right, bottom), cv::Scalar(255, 178, 50), 3);
-    
-    //Get the label for the class name and its confidence
-    std::string label = cv::format("%.2f", conf);
-    if (!classes.empty())
-    {
-        CV_Assert(classId < (int)classes.size());
-        label = classes[classId] + ":" + label;
-    } else {
-        std::cout << "Classes r empty" << std::endl;
-    }
-    
-    //Display the label at the top of the bounding box
-    int baseLine;
-    cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
-    top = std::max(top, labelSize.height);
-    cv::rectangle(frame, cv::Point(left, top - round(1.5*labelSize.height)), cv::Point(left + round(1.5*labelSize.width), top + baseLine), cv::Scalar(255, 255, 255), cv::FILLED);
-    putText(frame, label, cv::Point(left, top), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0,0,0),1);
+
+int main(int argc, char** argv) {
+
+    std::cout << "CV_major : " << CV_MAJOR_VERSION << std::endl;
+    std::cout << "CV_minor : " << CV_MINOR_VERSION << std::endl;
+
+    std::string nodeName = "cuke_vision_node";
+    ros::init(argc, argv, nodeName);
+
+    objectDetector oD;
+
+    ros::spin();
+
+    return 0;
 }
 
-// Get the names of the output layers
-std::vector<cv::String> getOutputsNames(const cv::dnn::Net& net)
-{
-    static std::vector<cv::String> names;
-    if (names.empty())
-    {
-        //Get the indices of the output layers, i.e. the layers with unconnected outputs
-        std::vector<int> outLayers = net.getUnconnectedOutLayers();
-        
-        //get the names of all the layers in the network
-        std::vector<cv::String> layersNames = net.getLayerNames();
-        
-        // Get the names of the output layers in names
-        names.resize(outLayers.size());
-        for (size_t i = 0; i < outLayers.size(); ++i)
-        names[i] = layersNames[outLayers[i] - 1];
-    }
-    return names;
-}
+
