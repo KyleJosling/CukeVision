@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   message_generation
+  tf
 # NOTE : cv_bridge is causing linker issues. Refer here :https://answers.ros.org/question/312235/error-linking-to-opencv-dnn-library/ 
 )
 
@@ -21,6 +22,7 @@ find_package(Boost REQUIRED COMPONENTS thread)
 set(OpenCV_DIR "/home/kylejosling/installation/OpenCV-3.4")
 find_package(OpenCV 3.4.8 EXACT REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(realsense2 REQUIRED)
 
 MESSAGE(WARNING "install path ${OpenCV_INSTALL_PATH}")
 MESSAGE(WARNING "include dirs ${OpenCV_INCLUDE_DIRS} ")
@@ -96,8 +98,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp src/detectObject.cpp)
- target_link_libraries(${PROJECT_NAME}_node
+add_executable(cukeVisionNode src/cukeVisionNode.cpp src/detectObject.cpp)
+ target_link_libraries(cukeVisionNode
    ${OpenCV_LIBRARIES}
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
@@ -119,6 +121,21 @@ add_executable(stemDetectionNode src/stemDetectionNode.cpp)
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
    ${pid_LIBRARY}
+ )
+add_definitions(-std=c++11 -g -O3)
+add_definitions(-DGUI)
+
+add_executable(baseFrameBroadcasterNode src/baseFrameBroadcasterNode.cpp)
+ target_link_libraries(baseFrameBroadcasterNode
+   ${catkin_LIBRARIES}
+)
+
+add_executable(boundingBoxNode src/boundingBoxNode.cpp)
+ target_link_libraries(boundingBoxNode
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+   ${pid_LIBRARY}
+   ${realsense2_LIBRARY}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)

@@ -60,7 +60,8 @@ int main(int argc, char** argv) {
 
     while (ros::ok()) {
 
-        cap >> frame;
+        // cap >> frame;
+        frame = cv::imread("/home/kylejosling/Downloads/DataSets/Scrape/JPEG/16728198407_6c51645269_b.jpg");
 
         // Pack messages TODO will eventually be two different images
         left_image_msg  = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
