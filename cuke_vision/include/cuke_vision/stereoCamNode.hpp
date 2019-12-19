@@ -1,0 +1,66 @@
+// ----------------------------------------------------------
+// NAME: Stereo Camera Node Header
+// DESCRIPTION:
+// 1. Receives depth and color images from Realsense camera
+// 2. Gets 3D points from pixel coordinates
+// ----------------------------------------------------------
+
+#include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <ros/ros.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include "cv_bridge/cv_bridge.h"
+#include "image_transport/image_transport.h"
+#include "image_transport/subscriber_filter.h"
+
+#include "cuke_vision/cukeDetector.hpp"
+
+#include <iostream>
+#include <stdio.h>
+
+class stereoCamNode {
+
+    public:
+        
+        // Constructor
+        stereoCamNode();
+
+        // Destructor
+        // ~stereoCamNode();
+
+    private:
+
+        ros::NodeHandle nH;
+        image_transport::ImageTransport it;
+
+        const std::string nodeName = "stereoCamNode";
+
+        const std::string cameraInfoTopic = "/camera/depth/camera_info";
+        const std::string colorImageTopic = "/camera/color/image_raw";
+        const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
+
+        // Image transport subscriber
+        image_transport::SubscriberFilter colorImageSub;
+        image_transport::SubscriberFilter depthImageSub;
+
+        // Sync policy for synchronization
+        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
+
+        // Define synchronizer for callbacks
+        message_filters::Synchronizer<SyncPolicy> sync;
+        
+        // Cucumber detector object
+        cukeDetector detector;
+
+        // Current frame and bounding boxes around cukes
+        cv::Mat frame;
+        std::vector<cv::Rect> boxes;
+
+        void cameraSetup();
+        void imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg);
+        void compute3DPoint();
+};
