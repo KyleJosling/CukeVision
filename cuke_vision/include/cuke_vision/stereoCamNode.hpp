@@ -35,7 +35,8 @@ class stereoCamNode {
         // ~stereoCamNode();
 
     private:
-
+        
+        // Node variables
         ros::NodeHandle nH;
         image_transport::ImageTransport it;
 
@@ -63,14 +64,17 @@ class stereoCamNode {
         cv::Mat colorFrame;
         cv::Mat depthFrame;
         std::vector<cv::Rect> boxes;
-        
+
+        // Marker points for bounding boxes
+        visualization_msgs::Marker points;
+
         // Camera intrinsics/extrinsics
         boost::shared_ptr<const sensor_msgs::CameraInfo> camInfoPtr;
         float K[9];
 
         void cameraSetup();
         void imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg);
-
+        void draw3DBounding(cv::Rect bounding);
         void compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]);
-        void sendMarker(visualization_msgs::Marker points);
+        void sendMarkers();
 };

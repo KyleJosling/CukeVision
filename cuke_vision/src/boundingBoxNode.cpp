@@ -34,6 +34,11 @@ int main(int argc, char** argv) {
     auto DepthStream = MyPipelineProfile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 
     rs2_intrinsics DepthIntrinsics = DepthStream.get_intrinsics();
+    std::cout << "Intrinsics are : " << std::endl;
+    std::cout << "ppx " << DepthIntrinsics.ppx << std::endl;
+    std::cout << "ppy " << DepthIntrinsics.ppy << std::endl;
+    std::cout << "fx " << DepthIntrinsics.fx << std::endl;
+    std::cout << "fy " << DepthIntrinsics.fy << std::endl;
 
 
      for (int i = 0; i<10; i++)//to skip first few frames when device just initiated

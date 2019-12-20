@@ -51,10 +51,15 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
 
         // Detect cucumbers
         boxes.clear();
+        points.points.clear();
         detector.detectCukes(colorFrame, boxes);
-        for (int i = 0; i < boxes.size(); i++) {
+        // TODO should be boxes.size();
+        for (int i = 0; i < 1; i++) {
             draw3DBounding(boxes[i]);
         }
+
+        // Publish the message
+        sendMarkers();
 
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("Image encoding error %s", e.what());
@@ -63,32 +68,57 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
 }
 
 // Draw 3D bounding box
-void stereoCamNode::draw3DBounding(cv::Rect 2DBounding) {
+void stereoCamNode::draw3DBounding(cv::Rect bounding) {
 
     // std::cout << "Pixel at " << boxes[0].x + (boxes[0].width)/2 << " , " << boxes[0].y + (boxes[0].height)/2 << std::endl;
     // Get depth of front of cucumber
-    float centPixelX = 2DBounding.x + 2DBounding.width/2;
-    float centPixelY = 2DBounding.y + 2DBounding.height/2;
+    float pixel_x    = bounding.x;
+    float pixel_y    = bounding.y;
+    float box_width  = bounding.width;
+    float box_height = bounding.height;
+    std::cout << "x, y " << static_cast<int>(pixel_x + box_width/2) << " " << static_cast<int>(pixel_y + box_height/2) << std::endl;
 
+    // TODO should this be float
+    unsigned short frontDepth = depthFrame.at<unsigned short>(static_cast<int>(pixel_x + box_width/2), static_cast<int>(pixel_y + box_height/2));
+    std::cout << "front depth is : " << frontDepth << std::endl;
 
+    float point[3];
+    geometry_msgs::Point p;
+
+    // Top left
+    compute3DPoint(pixel_x, pixel_y, frontDepth, point);
+    p.x = point[0];
+    p.y = point[1];
+    p.z = point[2];
     points.points.push_back(p);
 
-    auto frontDepth = depthFrame.at<unsigned short>(static_cast<int>(centPixelX), static_cast<int>(centPixelY));
-    float point[3];
-    compute3DPoint(centPixelX, centPixelY, frontDepth, point);
-    geometry_msgs::Point p;
-    p.x = pixel[0];
-    p.y = pixel[1];
-    p.z = pixel[2];
-    sendMarker(point);
+    // Top right
+    compute3DPoint(pixel_x + box_width, pixel_y, frontDepth, point);
+    p.x = point[0];
+    p.y = point[1];
+    p.z = point[2];
+    points.points.push_back(p);
 
+    // Bottom left
+    compute3DPoint(pixel_x, pixel_y + box_height, frontDepth, point);
+    p.x = point[0];
+    p.y = point[1];
+    p.z = point[2];
+    points.points.push_back(p);
+
+    // Bottom right
+    compute3DPoint(pixel_x + box_width, pixel_y + box_height, frontDepth, point);
+    p.x = point[0];
+    p.y = point[1];
+    p.z = point[2];
+    points.points.push_back(p);
 }
 
 // Gets 3D coordinates of point
-void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, unsigned short depth, float (&point)[3]) {
+void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]) {
 
     // float depth = depthFrame.at<unsigned short>(static_cast<int>(pixel_x), static_cast<int>(pixel_y));
-    // depth = depth*0.001f;
+    depth = depth*0.001f;
     float x = (pixel_x - camInfoPtr->K.at(2)) / camInfoPtr->K.at(0);
     float y = (pixel_y - camInfoPtr->K.at(5)) / camInfoPtr->K.at(4);
 
@@ -98,13 +128,14 @@ void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, uns
     std::cout << point[0] << std::endl;
     std::cout << point[1] << std::endl;
     std::cout << point[2] << std::endl;
+
 }
 
 // Sends visualization marker message
-void stereoCamNode::sendMarkers(visualization_msgs::Marker points) {
+void stereoCamNode::sendMarkers() {
     
     // TODO could probably put all this repeated stuff in a function that's called once
-    points.header.frame_id = "/camera_depth_optical_frame";
+    points.header.frame_id = "/camera_depth_optical_frame"; // TODO make this a constant
     points.header.stamp = ros::Time::now();
     points.ns = "point";
     points.pose.orientation.w = 1.0;
