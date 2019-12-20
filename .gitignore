@@ -1,2 +1,3 @@
 *.weights
+*.swp
 yolov3.cfg

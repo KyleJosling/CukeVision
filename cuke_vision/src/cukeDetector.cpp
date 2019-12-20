@@ -34,7 +34,7 @@ cukeDetector::~cukeDetector() {
 }
 
 // Cucumber detection function
-std::vector<cv::Rect> cukeDetector::detectCukes( cv::Mat &frame) {
+void cukeDetector::detectCukes( cv::Mat &frame, std::vector<cv::Rect> &boxes) {
 
     // Create a 4D blob from a frame.
     cv::dnn::blobFromImage(frame, blob, 1/255.0, cvSize(inpWidth, inpHeight), cv::Scalar(0,0,0), true, false);
@@ -44,14 +44,13 @@ std::vector<cv::Rect> cukeDetector::detectCukes( cv::Mat &frame) {
 
     // Runs the forward pass to get output of the output layers
     std::vector<cv::Mat> outs;
-    std::vector <cv::String> namez;
-    for (int i = 0; i < (namez.size()); i++) {
-        std::cout << namez[i] << std::endl;
-    }
+    // std::vector <cv::String> namez;
+    // for (int i = 0; i < (namez.size()); i++) {
+    //     std::cout << namez[i] << std::endl;
+    // }
     net.forward(outs, getOutputsNames(net));
 
     // Remove the bounding boxes with low confidence, publish message
-    std::vector<cv::Rect> boxes;
     postprocess(frame, outs, boxes);
 
     // Put efficiency information. The function getPerfProfile returns the overall time for inference(t) and the timings for each of the layers(in layersTimes)
@@ -61,6 +60,11 @@ std::vector<cv::Rect> cukeDetector::detectCukes( cv::Mat &frame) {
     std::string label = cv::format("Inference time for a frame : %.2f ms", t);
 
     #ifdef GUI
+    // TODO fix darwing later
+    if (!boxes.empty()) {
+    cv::Point center((boxes[0].x + boxes[0].width/2), (boxes[0].y + boxes[0].height/2));
+    cv::circle(frame, center, 3, cv::Scalar(255,0,0), -1);
+    }
     cv::putText(frame, label, cv::Point(0, 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255));
     cv::imshow(kWinName, frame);
     cv::waitKey(30);

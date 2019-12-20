@@ -13,6 +13,8 @@
 #include <ros/ros.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <visualization_msgs/Marker.h>
+
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.h"
 #include "image_transport/subscriber_filter.h"
@@ -39,13 +41,14 @@ class stereoCamNode {
 
         const std::string nodeName = "stereoCamNode";
 
-        const std::string cameraInfoTopic = "/camera/depth/camera_info";
+        const std::string cameraInfoTopic = "/camera/aligned_depth_to_color/camera_info";
         const std::string colorImageTopic = "/camera/color/image_raw";
         const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
 
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;
         image_transport::SubscriberFilter depthImageSub;
+        ros::Publisher markerPub;
 
         // Sync policy for synchronization
         typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
@@ -57,10 +60,17 @@ class stereoCamNode {
         cukeDetector detector;
 
         // Current frame and bounding boxes around cukes
-        cv::Mat frame;
+        cv::Mat colorFrame;
+        cv::Mat depthFrame;
         std::vector<cv::Rect> boxes;
+        
+        // Camera intrinsics/extrinsics
+        boost::shared_ptr<const sensor_msgs::CameraInfo> camInfoPtr;
+        float K[9];
 
         void cameraSetup();
         void imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg);
-        void compute3DPoint();
+
+        void compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]);
+        void sendMarker(visualization_msgs::Marker points);
 };

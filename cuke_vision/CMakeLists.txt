@@ -130,7 +130,7 @@ add_executable(baseFrameBroadcasterNode src/baseFrameBroadcasterNode.cpp)
    ${catkin_LIBRARIES}
 )
 
-add_executable(boundingBoxNode src/boundingBoxNode.cpp)
+add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
  target_link_libraries(boundingBoxNode
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}

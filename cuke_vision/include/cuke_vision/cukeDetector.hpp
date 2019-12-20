@@ -24,7 +24,7 @@ class cukeDetector {
 
     ~cukeDetector();
 
-    std::vector<cv::Rect> detectCukes( cv::Mat &frame);
+    void detectCukes( cv::Mat &frame, std::vector<cv::Rect> &boxes);
 
     private:
 
