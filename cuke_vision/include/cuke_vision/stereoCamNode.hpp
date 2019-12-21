@@ -42,9 +42,11 @@ class stereoCamNode {
 
         const std::string nodeName = "stereoCamNode";
 
-        const std::string cameraInfoTopic = "/camera/aligned_depth_to_color/camera_info";
+        // const std::string cameraInfoTopic = "/camera/aligned_depth_to_color/camera_info";
+        const std::string cameraInfoTopic = "/camera/depth/camera_info";
         const std::string colorImageTopic = "/camera/color/image_raw";
-        const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
+        // const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
+        const std::string depthImageTopic = "/camera/depth/image_rect_raw";
 
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;

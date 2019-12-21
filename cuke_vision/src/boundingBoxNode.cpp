@@ -72,6 +72,8 @@ int main(int argc, char** argv) {
 
         float distance = depthFrame.get_distance(int(InputPixelAsFloat[0]), int(InputPixelAsFloat[1]));
 
+        std::cout << "DISTANCE : " << distance << std::endl;
+
         rs2_deproject_pixel_to_point(ResultVector, &DepthIntrinsics, InputPixelAsFloat, distance);
          
         std::cout << "Pixel at " << InputPixelAsFloat[0] << " , " << InputPixelAsFloat[1] << std::endl;
