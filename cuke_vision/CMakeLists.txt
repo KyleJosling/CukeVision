@@ -23,6 +23,7 @@ set(OpenCV_DIR "/home/kylejosling/installation/OpenCV-3.4")
 find_package(OpenCV 3.4.8 EXACT REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(realsense2 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 MESSAGE(WARNING "install path ${OpenCV_INSTALL_PATH}")
 MESSAGE(WARNING "include dirs ${OpenCV_INCLUDE_DIRS} ")
@@ -83,6 +84,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${YAML_CPP_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -136,6 +139,17 @@ add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
    ${OpenCV_LIBRARIES}
    ${pid_LIBRARY}
    ${realsense2_LIBRARY}
+ )
+add_definitions(-std=c++11 -g -O3)
+add_definitions(-DGUI)
+
+add_executable(worldNode src/worldNode.cpp)
+ target_link_libraries(worldNode
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+   ${pid_LIBRARY}
+   ${realsense2_LIBRARY}
+   ${Eigen3_LIBRARY}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
