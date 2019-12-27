@@ -6,7 +6,11 @@
 
 
 #include <ros/ros.h>
+#include <ros/console.h>
+
 #include <geometry_msgs/Pose.h>
+
+#include <kinova_driver/kinova_ros_types.h>
 
 // MoveIt!
 #include <moveit_msgs/PlanningScene.h>
@@ -14,6 +18,16 @@
 #include <moveit_msgs/GetStateValidity.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/ApplyPlanningScene.h>
+
+
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+
+#include <moveit/planning_interface/planning_interface.h>
+#include <moveit/planning_scene/planning_scene.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/planning_pipeline/planning_pipeline.h>
 
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_state/robot_state.h>
@@ -34,8 +48,11 @@ class worldNode {
         
         // Node Handle
         ros::NodeHandle nH;
-
+        
+        // Node name
         const std::string nodeName = "worldNode";
+
+        // Topics
         const std::string cukeTopic = "cuke3D";
         const std::string cObjTopic = "cObj";
         const std::string aObjTopic = "aObj";
@@ -46,6 +63,32 @@ class worldNode {
 
         // Subscribers
         ros::Subscriber cukeSub;
+
+        // Planning group name (the set of robot joints)
+        const std::string armPlanningGroup = "arm";
+        const std::string gripperPlanningGroup = "gripper";
+
+        // Other parameters
+        std::string robotType;
+        bool robotConnected;
+        
+        // Planning interfaces for arm and gripper
+        moveit::planning_interface::MoveGroupInterface *armGroupInterface;
+        // moveit::planning_interface::MoveGroupInterface *gripperGroup;
+
+        // Planning scene interface
+        moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
+
+        // Model of robot
+        // robot_model::RobotModelPtr robotModel;
+        const robot_state::JointModelGroup *jointModelGroup;
+
+
+        // Class that allows addition/removal of collision objects in our world
+        // TODO difference between this and the pointer???
+        // moveit::planning_interface::PlanningSceneInterface planningScene; 
+        
+
 
         // Collision objects
         moveit_msgs::CollisionObject cObj;

@@ -14,6 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   tf
+  moveit_core
+  moveit_visual_tools
+  moveit_ros_planning
+  moveit_ros_planning_interface
 # NOTE : cv_bridge is causing linker issues. Refer here :https://answers.ros.org/question/312235/error-linking-to-opencv-dnn-library/ 
 )
 
@@ -24,6 +28,7 @@ find_package(OpenCV 3.4.8 EXACT REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(realsense2 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(kinova_driver REQUIRED)
 
 MESSAGE(WARNING "install path ${OpenCV_INSTALL_PATH}")
 MESSAGE(WARNING "include dirs ${OpenCV_INCLUDE_DIRS} ")
@@ -68,8 +73,15 @@ find_library(pid_LIBRARY pid)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES cuke_vision 
-  CATKIN_DEPENDS roscpp std_msgs message_runtime
-  DEPENDS Boost OpenCV
+  CATKIN_DEPENDS
+    roscpp
+    std_msgs
+    message_runtime
+    moveit_core
+    moveit_ros_planning_interface
+  DEPENDS
+    Boost
+    OpenCV
 )
 
 ###########
@@ -86,6 +98,7 @@ include_directories(
   ${YAML_CPP_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
+  ${kinova_driver_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -150,6 +163,7 @@ add_executable(worldNode src/worldNode.cpp)
    ${pid_LIBRARY}
    ${realsense2_LIBRARY}
    ${Eigen3_LIBRARY}
+   ${kinova_driver_LIBRARIES}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
