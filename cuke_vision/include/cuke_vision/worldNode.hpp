@@ -1,9 +1,9 @@
 // ----------------------------------------------------------
-// NAME: Stereo Camera Node
+// NAME: World Node Header
 // DESCRIPTION: Node that handles adding and removing
 // collision objects (cucumbers) from world map
 // ----------------------------------------------------------
-
+// TODO organize
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -34,6 +34,8 @@
 #include <moveit/robot_state/conversions.h>
 
 #include <moveit_visual_tools/moveit_visual_tools.h>
+#include <geometric_shapes/solid_primitive_dims.h>
+
 
 
 class worldNode {
@@ -72,7 +74,7 @@ class worldNode {
         std::string robotType;
         bool robotConnected;
         
-        // Planning interfaces for arm and gripper
+        // Planning interfaces for arm and gripper TODO should these be pointers?
         moveit::planning_interface::MoveGroupInterface *armGroupInterface;
         // moveit::planning_interface::MoveGroupInterface *gripperGroup;
 
@@ -80,24 +82,24 @@ class worldNode {
         moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
 
         // Model of robot
-        // robot_model::RobotModelPtr robotModel;
-        const robot_state::JointModelGroup *jointModelGroup;
-
-
-        // Class that allows addition/removal of collision objects in our world
-        // TODO difference between this and the pointer???
-        // moveit::planning_interface::PlanningSceneInterface planningScene; 
-        
-
+        moveit::core::RobotStatePtr currentRobotState;
 
         // Collision objects
         moveit_msgs::CollisionObject cObj;
         moveit_msgs::AttachedCollisionObject aObj;
         
+        // Default pose
+        geometry_msgs::Pose Home;
+
+        void moveToGoal();
+
+        // Utilities
+        void printRobotPose();
+
         // Collision functions
+        void pickCucumber();
         void addCucumber();
         void removeCucumber();
-
 
 };
 
