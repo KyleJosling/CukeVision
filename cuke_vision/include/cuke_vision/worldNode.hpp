@@ -88,8 +88,9 @@ class worldNode {
         moveit_msgs::CollisionObject cObj;
         moveit_msgs::AttachedCollisionObject aObj;
         
-        // Default pose
-        geometry_msgs::Pose Home;
+        // Various poses
+        geometry_msgs::Pose homePose;
+        geometry_msgs::PoseStamped graspPose;
 
         void moveToGoal();
 
@@ -100,6 +101,7 @@ class worldNode {
         void pickCucumber();
         void addCucumber();
         void removeCucumber();
+        void defineCartesianPose();
 
 };
 

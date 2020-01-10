@@ -27,13 +27,14 @@ worldNode::worldNode() {
     ROS_INFO("Reference frame: %s", armGroupInterface->getEndEffectorLink().c_str());
 
     // Set home position, convert to geometry_msgs for ease of use
-    tf::Pose tempHome;
-    tempHome.setOrigin(tf::Vector3(0.21486, -0.203351, 0.418802));
-    tempHome.setRotation(tf::Quaternion(0.644305, 0.320657, 0.42346, 0.550211));
-    tf::poseTFToMsg(tempHome, Home); 
+    tf::Pose tempHomePose;
+    tempHomePose.setOrigin(tf::Vector3(0.21486, -0.203351, 0.418802));
+    tempHomePose.setRotation(tf::Quaternion(0.644305, 0.320657, 0.42346, 0.550211));
+    tf::poseTFToMsg(tempHomePose, homePose); 
 
     // TEST function
     // moveToGoal();
+    addTable();
     addCucumber();
     pickCucumber();
 }
@@ -59,6 +60,24 @@ void worldNode::printRobotPose() {
         currentPose.pose.orientation.y << " " <<
         currentPose.pose.orientation.z << " " <<
         currentPose.pose.orientation.w << std::endl;
+}
+
+// Define preset cartesian poses
+void worldNode::defineCartesianPose() {
+
+    tf::Quaternion q;
+
+    // Grasp pose
+    graspPose.header.frame_id = "root";
+    graspPose.header.stamp = ros::Time::now();
+
+    // EULER ZYZ (-pi/4, pi/2, pi/2)
+    graspPose.pose.position.x = 0.0;
+    graspPose.pose.position.y = 0.6;
+    graspPose.pose.position.z = 0.3;
+
+
+
 }
 
 // TODO test function
