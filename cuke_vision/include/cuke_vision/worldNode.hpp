@@ -11,6 +11,7 @@
 #include <geometry_msgs/Pose.h>
 
 #include <kinova_driver/kinova_ros_types.h>
+#include <kinova_msgs/SetFingersPositionAction.h>
 
 // MoveIt!
 #include <moveit_msgs/PlanningScene.h>
@@ -74,9 +75,13 @@ class worldNode {
         std::string robotType;
         bool robotConnected;
         
+        // Action client for moving fingers
+        actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>* fingerClient;
+
         // Planning interfaces for arm and gripper TODO should these be pointers?
         moveit::planning_interface::MoveGroupInterface *armGroupInterface;
-        // moveit::planning_interface::MoveGroupInterface *gripperGroup;
+        moveit::planning_interface::MoveGroupInterface *gripperGroupInterface;
+        robot_model::RobotModelPtr robotModel;
 
         // Planning scene interface
         moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
@@ -91,8 +96,10 @@ class worldNode {
         // Various poses
         geometry_msgs::Pose homePose;
         geometry_msgs::PoseStamped graspPose;
+        
 
         void moveToGoal();
+        bool gripperAction(double fingerOpen);
 
         // Utilities
         void printRobotPose();
@@ -100,6 +107,7 @@ class worldNode {
         // Collision functions
         void pickCucumber();
         void addCucumber();
+        // void addTable();
         void removeCucumber();
         void defineCartesianPose();
 

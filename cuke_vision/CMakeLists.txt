@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS thread)
 
-set(OpenCV_DIR "/home/kylejosling/installation/OpenCV-3.4")
 find_package(OpenCV 3.4.8 EXACT REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(realsense2 REQUIRED)
@@ -56,12 +55,12 @@ generate_messages(
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
 ################################################
+# None
 
 ################################################
 ## Find libraries
 ################################################
-link_directories(/usr/local/lib)
-find_library(pid_LIBRARY pid)
+# None
 
 ###################################
 ## catkin specific configuration ##

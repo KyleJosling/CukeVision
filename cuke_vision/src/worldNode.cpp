@@ -17,9 +17,22 @@ worldNode::worldNode() {
     nH.param<std::string>("/robot_type", robotType);
     nH.param<bool>("/robot_connected", robotConnected);
 
+    robotModelLoader::RobotModelLoader robot_model_loader("robot_description");
+    robotModel = robot_model_loader.getModel();
+
     // Initialize the move group interface and planning scene interface
     armGroupInterface = new moveit::planning_interface::MoveGroupInterface(armPlanningGroup);
+    gripperGroupInterface = new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup);
     planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
+
+    // Finger action client
+    fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
+        ("/" + robotType + "_driver/fingers_action/finger_positions", false);
+   
+    // Wait for finger action server to come up
+    while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
+      ROS_INFO("Waiting for the finger action server to come up");
+    }
     
     // We can print the name of the reference frame for this robot.
     ROS_INFO("Reference frame: %s", armGroupInterface->getPlanningFrame().c_str());
@@ -34,9 +47,10 @@ worldNode::worldNode() {
 
     // TEST function
     // moveToGoal();
-    addTable();
+    // addTable();
     addCucumber();
     pickCucumber();
+    gripperAction(0);
 }
 
 // World destructor
@@ -78,6 +92,29 @@ void worldNode::defineCartesianPose() {
 
 
 
+}
+
+// Closes or open gripper 
+bool worldNode::gripperAction(double fingerOpen) {
+    
+    // TODO - if robotConnected == false?
+    
+    kinova_msgs::SetFingersPositionGoal goal;
+    goal.fingers.finger1 = fingerOpen;
+    goal.fingers.finger2 = fingerOpen;
+    goal.fingers.finger3 = fingerOpen;
+    std::cout << "meep" << std::endl;
+    fingerClient->sendGoal(goal);
+    std::cout << "meep" << std::endl;
+    
+    if (fingerClient->waitForResult(ros::Duration(5.0))) {
+        fingerClient->getResult();
+        return true;
+    } else {
+        fingerClient->cancelAllGoals();
+        ROS_WARN_STREAM("The gripper action timed-out");
+        return false;
+    }
 }
 
 // TODO test function
