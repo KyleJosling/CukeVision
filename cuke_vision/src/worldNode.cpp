@@ -17,8 +17,8 @@ worldNode::worldNode() {
     nH.param<std::string>("/robot_type", robotType);
     nH.param<bool>("/robot_connected", robotConnected);
 
-    robotModelLoader::RobotModelLoader robot_model_loader("robot_description");
-    robotModel = robot_model_loader.getModel();
+    // robotModelLoader::RobotModelLoader robot_model_loader("robot_description");
+    // robotModel = robot_model_loader.getModel();
 
     // Initialize the move group interface and planning scene interface
     armGroupInterface = new moveit::planning_interface::MoveGroupInterface(armPlanningGroup);

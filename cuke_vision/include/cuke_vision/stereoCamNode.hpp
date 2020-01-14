@@ -15,9 +15,13 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <visualization_msgs/Marker.h>
 
+#include <moveit_visual_tools/moveit_visual_tools.h>
+#include <geometric_shapes/solid_primitive_dims.h>
+
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.h"
 #include "image_transport/subscriber_filter.h"
+
 
 #include "cuke_vision/cukeDetector.hpp"
 
@@ -51,7 +55,7 @@ class stereoCamNode {
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;
         image_transport::SubscriberFilter depthImageSub;
-        ros::Publisher markerPub;
+        ros::Publisher cucumberPub;
 
         // Sync policy for synchronization
         typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> SyncPolicy;
@@ -67,9 +71,10 @@ class stereoCamNode {
         cv::Mat depthFrame;
         std::vector<cv::Rect> boxes;
 
-        // Marker points for bounding boxes
-        visualization_msgs::Marker points;
-
+        // Collision objects (cucumbers we have detected)
+        moveit_msgs::CollisionObject cObj;
+        std::vector<moveit_msgs::CollisionObject> cObjs;
+         
         // Camera intrinsics/extrinsics
         boost::shared_ptr<const sensor_msgs::CameraInfo> camInfoPtr;
         float K[9];
@@ -78,5 +83,5 @@ class stereoCamNode {
         void imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg);
         void draw3DBounding(cv::Rect bounding);
         void compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]);
-        void sendMarkers();
+        void sendObjects();
 };
