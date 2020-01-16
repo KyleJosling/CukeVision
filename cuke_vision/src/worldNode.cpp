@@ -25,14 +25,14 @@ worldNode::worldNode() {
     gripperGroupInterface = new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup);
     planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
 
-    // Finger action client
-    fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
-        ("/" + robotType + "_driver/fingers_action/finger_positions", false);
+    // // Finger action client
+    // fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
+    //     ("/" + robotType + "_driver/fingers_action/finger_positions", false);
    
     // Wait for finger action server to come up
-    while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
-      ROS_INFO("Waiting for the finger action server to come up");
-    }
+    // while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
+    //   ROS_INFO("Waiting for the finger action server to come up");
+    // }
     
     // We can print the name of the reference frame for this robot.
     ROS_INFO("Reference frame: %s", armGroupInterface->getPlanningFrame().c_str());
@@ -48,9 +48,8 @@ worldNode::worldNode() {
     // TEST function
     // moveToGoal();
     // addTable();
-    addCucumber();
-    pickCucumber();
-    gripperAction(0);
+    // pickCucumber();
+    // gripperAction(0);
 }
 
 // World destructor
@@ -89,9 +88,6 @@ void worldNode::defineCartesianPose() {
     graspPose.pose.position.x = 0.0;
     graspPose.pose.position.y = 0.6;
     graspPose.pose.position.z = 0.3;
-
-
-
 }
 
 // Closes or open gripper 
@@ -103,9 +99,7 @@ bool worldNode::gripperAction(double fingerOpen) {
     goal.fingers.finger1 = fingerOpen;
     goal.fingers.finger2 = fingerOpen;
     goal.fingers.finger3 = fingerOpen;
-    std::cout << "meep" << std::endl;
     fingerClient->sendGoal(goal);
-    std::cout << "meep" << std::endl;
     
     if (fingerClient->waitForResult(ros::Duration(5.0))) {
         fingerClient->getResult();
@@ -135,39 +129,15 @@ void worldNode::moveToGoal() {
 }
 
 // Receives a new cucumber
-void worldNode::objectCallback(const shape_msgs::SolidPrimitive &objectMsg) {
-
-}
-
-// Adds a collision object to the world
-void worldNode::addCucumber() {
+void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     
+    ROS_INFO("Cuke has been received with height: %f and radius: %f",
+        objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT],
+        objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS]);
 
-    ROS_INFO("Adding cuke");
+    cObjPub.publish(objectMsg);
 
-    //add target_cylinder
-    cObj.id = "target_cylinder";
-    cObj.header.frame_id = "world";
-    
-    // Define the primitive and add its dimensions
-    cObj.primitives.resize(1);
-    cObj.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
-    cObj.primitives[0].dimensions.resize(geometric_shapes::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::CYLINDER>::value);
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.25;
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.025;
-    
-    // Define the pose of the object
-    cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = 0.0;
-    cObj.primitive_poses[0].position.y = 0.6;
-    cObj.primitive_poses[0].position.z = 0.3;
-
-    cObj.operation = moveit_msgs::CollisionObject::ADD;
-    cObjPub.publish(cObj);
-
-    std::vector<moveit_msgs::CollisionObject> cObjs;
-    cObjs.push_back(cObj);
-    planningSceneInterface->applyCollisionObject(cObj);
+    planningSceneInterface->applyCollisionObject(objectMsg);
 }
 
 // Removes a collision object from the world

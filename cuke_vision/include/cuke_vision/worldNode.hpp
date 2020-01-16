@@ -45,7 +45,7 @@ class worldNode {
         worldNode();
         ~worldNode();
 
-        void objectCallback(const shape_msgs::SolidPrimitive &objectMsg);
+        void objectCallback(const moveit_msgs::CollisionObject &objectMsg);
 
     private:
         
@@ -106,7 +106,6 @@ class worldNode {
 
         // Collision functions
         void pickCucumber();
-        void addCucumber();
         // void addTable();
         void removeCucumber();
         void defineCartesianPose();

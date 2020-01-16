@@ -14,7 +14,7 @@ stereoCamNode::stereoCamNode():
     sync(SyncPolicy(10), colorImageSub, depthImageSub) {
     
     // Initialize cucumber publisher TODO make constants
-    cucumberPub = nH.advertise<moveit_msgs::CollisionObject>("cucumber", 10);
+    cucumberPub = nH.advertise<moveit_msgs::CollisionObject>(cucumberTopic, 10);
 
     // Get intrinsics + extrinsics of camera
     cameraSetup();
@@ -51,7 +51,7 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
 
         // Detect cucumbers
         boxes.clear();
-        // points.points.clear();
+        
         detector.detectCukes(colorFrame, boxes);
         // TODO should be boxes.size();
         for (int i = 0; i < 1; i++) {
@@ -59,7 +59,7 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
         }
 
         // Publish the message
-        sendObjects();
+        // sendObjects();
 
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("Image encoding error %s", e.what());
@@ -110,7 +110,7 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     pBR.y = point[1];
     pBR.z = point[2];
     
-    // TODO can seperate this into one function
+    // // TODO can seperate this into one function
     cObj.id = "cucumber";
     cObj.header.frame_id = "world";
 
@@ -118,14 +118,14 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     cObj.primitives.resize(1);
     cObj.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
     cObj.primitives[0].dimensions.resize(geometric_shapes::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::CYLINDER>::value);
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = pTL.z - pBL.z;
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = pTL.x - pTR.x;
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = pBL.y - pTL.y;
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = (pTR.x - pTL.x)/2;
 
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = (pTL.x + pTR.x)/2; // TODO fix this
+    cObj.primitive_poses[0].position.x = (pTL.z + pTR.z)/2;
     cObj.primitive_poses[0].position.y = (pTL.y + pTR.y)/2;
-    cObj.primitive_poses[0].position.z = (pTL.z + pTR.z)/2;
+    cObj.primitive_poses[0].position.z = (pTL.x + pTR.x)/2;
 
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cucumberPub.publish(cObj);
@@ -143,31 +143,9 @@ void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, flo
     point[0] = depth*x;
     point[1] = depth*y;
     point[2] = depth;
-    std::cout << point[0] << std::endl;
-    std::cout << point[1] << std::endl;
-    std::cout << point[2] << std::endl;
-
-}
-
-// Sends collision object message(s)
-// TODO finish this to send cucumbers from points
-void stereoCamNode::sendObjects() {
-    
-    // TODO could probably put all this repeated stuff in a function that's called once
-    // points.header.frame_id = "/camera_depth_optical_frame"; // TODO make this a constant
-    // points.header.stamp = ros::Time::now();
-    // points.ns = "point";
-    // points.pose.orientation.w = 1.0;
-    // points.id = 0;
-    // points.type = visualization_msgs::Marker::POINTS;
-
-    // points.scale.x = 0.02;
-    // points.scale.y = 0.02;
-
-    // points.color.g = 1.0f;
-    // points.color.a = 1.0;
-    
-    // cucumberPub.publish();
+    // std::cout << point[0] << std::endl;
+    // std::cout << point[1] << std::endl;
+    // std::cout << point[2] << std::endl;
 }
 
 int main(int argc, char** argv) {

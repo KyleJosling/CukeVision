@@ -51,6 +51,7 @@ class stereoCamNode {
         const std::string colorImageTopic = "/camera/color/image_raw";
         // const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
         const std::string depthImageTopic = "/camera/depth/image_rect_raw";
+        const std::string cucumberTopic = "cuke3D";
 
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;
