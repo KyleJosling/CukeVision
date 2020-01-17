@@ -5,6 +5,8 @@
 // ----------------------------------------------------------
 #include "cuke_vision/worldNode.hpp"
 
+const double FINGER_MAX = 6400;
+
 // Constructor
 worldNode::worldNode() {
     
@@ -14,25 +16,36 @@ worldNode::worldNode() {
     aObjPub = nH.advertise<moveit_msgs::AttachedCollisionObject>(aObjTopic, 10);
 
     // Get robot type, check if robot is connected
-    nH.param<std::string>("/robot_type", robotType);
-    nH.param<bool>("/robot_connected", robotConnected);
+    nH.param<std::string>("/robot_type", robotType, "m1n6s200");
+    nH.param<bool>("/robot_connected", robotConnected, true);
+    
+    if (robotConnected == false) {
+        ROS_INFO("Robot not connected");
+    }
+    // Create robot model
+    robot_model_loader::RobotModelLoader robotModelLoader("robot_description");
+    robotModel = robotModelLoader.getModel();
 
-    // robotModelLoader::RobotModelLoader robot_model_loader("robot_description");
-    // robotModel = robot_model_loader.getModel();
+    // Construt a planning scene that maintains a state of the world TODO
+    // diff?
+    // planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
+    planningScene.reset(new planning_scene::PlanningScene(robotModel)); 
+    planningSceneMonitor.reset(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
     // Initialize the move group interface and planning scene interface
     armGroupInterface = new moveit::planning_interface::MoveGroupInterface(armPlanningGroup);
     gripperGroupInterface = new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup);
-    planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
 
-    // // Finger action client
-    // fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
-    //     ("/" + robotType + "_driver/fingers_action/finger_positions", false);
+    // Finger action client
+    fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
+        ("/" + robotType + "_driver/fingers_action/finger_positions", false);
    
     // Wait for finger action server to come up
-    // while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
-    //   ROS_INFO("Waiting for the finger action server to come up");
-    // }
+    while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
+      ROS_INFO("Waiting for the finger action server to come up");
+    }
+
+    ROS_INFO("Finger action server is up");
     
     // We can print the name of the reference frame for this robot.
     ROS_INFO("Reference frame: %s", armGroupInterface->getPlanningFrame().c_str());
@@ -49,7 +62,7 @@ worldNode::worldNode() {
     // moveToGoal();
     // addTable();
     // pickCucumber();
-    // gripperAction(0);
+    gripperAction(6400);
 }
 
 // World destructor
@@ -91,14 +104,24 @@ void worldNode::defineCartesianPose() {
 }
 
 // Closes or open gripper 
-bool worldNode::gripperAction(double fingerOpen) {
+bool worldNode::gripperAction(double fingerTurn) {
     
-    // TODO - if robotConnected == false?
     
+    if (robotConnected == false) {
+        
+        if (fingerTurn>0.5*FINGER_MAX) {
+            gripperGroupInterface->setNamedTarget("Close");
+        } else {
+            gripperGroupInterface->setNamedTarget("Open");
+        }
+        gripperGroupInterface->move();
+        return true;
+    }
+
     kinova_msgs::SetFingersPositionGoal goal;
-    goal.fingers.finger1 = fingerOpen;
-    goal.fingers.finger2 = fingerOpen;
-    goal.fingers.finger3 = fingerOpen;
+    goal.fingers.finger1 = fingerTurn;
+    goal.fingers.finger2 = fingerTurn;
+    goal.fingers.finger3 = fingerTurn;
     fingerClient->sendGoal(goal);
     
     if (fingerClient->waitForResult(ros::Duration(5.0))) {
@@ -137,7 +160,7 @@ void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
 
     cObjPub.publish(objectMsg);
 
-    planningSceneInterface->applyCollisionObject(objectMsg);
+    // planningSceneInterface->applyCollisionObject(objectMsg);
 }
 
 // Removes a collision object from the world

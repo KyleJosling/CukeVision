@@ -13,7 +13,7 @@ stereoCamNode::stereoCamNode():
     depthImageSub(it, depthImageTopic, 1),
     sync(SyncPolicy(10), colorImageSub, depthImageSub) {
     
-    // Initialize cucumber publisher TODO make constants
+    // Initialize cucumber publisher
     cucumberPub = nH.advertise<moveit_msgs::CollisionObject>(cucumberTopic, 10);
 
     // Get intrinsics + extrinsics of camera

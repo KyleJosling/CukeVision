@@ -24,11 +24,11 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 
+#include <moveit/planning_pipeline/planning_pipeline.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit/planning_pipeline/planning_pipeline.h>
 
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_state/robot_state.h>
@@ -86,6 +86,10 @@ class worldNode {
         // Planning scene interface
         moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
 
+
+        planning_scene_monitor::PlanningSceneMonitorPtr planningSceneMonitor;
+        planning_scene::PlanningScenePtr planningScene;
+
         // Model of robot
         moveit::core::RobotStatePtr currentRobotState;
 
@@ -99,7 +103,7 @@ class worldNode {
         
 
         void moveToGoal();
-        bool gripperAction(double fingerOpen);
+        bool gripperAction(double fingerTurn);
 
         // Utilities
         void printRobotPose();
