@@ -7,6 +7,25 @@
 
 const double FINGER_MAX = 6400;
 
+// TODO add this to some utility file
+tf::Quaternion EulerZYZ_to_Quaternion(double tz1, double ty, double tz2)
+{
+    tf::Quaternion q;
+    tf::Matrix3x3 rot;
+    tf::Matrix3x3 rot_temp;
+    rot.setIdentity();
+
+    rot_temp.setEulerYPR(tz1, 0.0, 0.0);
+    rot *= rot_temp;
+    rot_temp.setEulerYPR(0.0, ty, 0.0);
+    rot *= rot_temp;
+    rot_temp.setEulerYPR(tz2, 0.0, 0.0);
+    rot *= rot_temp;
+    rot.getRotation(q);
+    return q;
+}
+
+
 // Constructor
 worldNode::worldNode() {
     
@@ -98,9 +117,17 @@ void worldNode::defineCartesianPose() {
     graspPose.header.stamp = ros::Time::now();
 
     // EULER ZYZ (-pi/4, pi/2, pi/2)
+    // Dummy numbers for position since position is defined by cucumber
+    // location
     graspPose.pose.position.x = 0.0;
     graspPose.pose.position.y = 0.6;
     graspPose.pose.position.z = 0.3;
+
+    q = EulerZYZtoQuaternion(-M_PI/4, M_PI/2, M_PI);
+    graspPose.pose.orientation.x = q.x();
+    graspPose.pose.orientation.y = q.y();
+    graspPose.pose.orientation.z = q.z();
+    graspPose.pose.orientation.w = q.w();
 }
 
 // Closes or open gripper 
@@ -171,10 +198,12 @@ void worldNode::removeCucumber() {
 // Pick cucumber
 void worldNode::pickCucumber() {
     
-    std::vector<moveit_msgs::Grasp> grasps;
-    grasps.resize(1);
+    // Pop cucumber from stack
+    cObj = cucumbers.pop();
 
+    // Create pre-grasp pose
 
+    
 }
 
 int main (int argc, char** argv ) {

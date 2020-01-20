@@ -93,13 +93,17 @@ class worldNode {
         // Model of robot
         moveit::core::RobotStatePtr currentRobotState;
 
+        // Various poses
+        geometry_msgs::Pose homePose;
+        geometry_msgs::PoseStamped preGraspPose;
+        geometry_msgs::PoseStamped graspPose;
+
         // Collision objects
         moveit_msgs::CollisionObject cObj;
         moveit_msgs::AttachedCollisionObject aObj;
         
-        // Various poses
-        geometry_msgs::Pose homePose;
-        geometry_msgs::PoseStamped graspPose;
+        // Cucumbers
+        std::stack<moveit_msgs::CollisionObject> cucumbers;
         
 
         void moveToGoal();
