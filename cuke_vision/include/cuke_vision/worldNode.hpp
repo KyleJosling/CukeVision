@@ -112,7 +112,7 @@ class worldNode {
         void printRobotPose();
 
         // Collision functions
-        void pickCucumber();
+        void pickCucumber(const moveit_msgs::CollisionObject &objectMsg);
         // void addTable();
         void removeCucumber();
         void defineCartesianPose();

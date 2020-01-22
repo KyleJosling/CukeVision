@@ -87,7 +87,6 @@ worldNode::worldNode() {
     // gripperAction(0);
     // gripperAction(6400);
     // moveToGoal();
-    pickCucumber();
 }
 
 // World destructor
@@ -129,6 +128,7 @@ void worldNode::addTestObject() {
     std::vector<moveit_msgs::CollisionObject> cObjs;
     cObjs.push_back(cObj);
     planningSceneInterface->applyCollisionObject(cObj);
+    pickCucumber(cObj);
 }
 
 // Prints the current pose of the robot
@@ -232,7 +232,7 @@ void worldNode::removeCucumber() {
 }
 
 // Pick cucumber
-void worldNode::pickCucumber() {
+void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     
     // Pop cucumber from stack
     // cObj = cucumbers.pop();
