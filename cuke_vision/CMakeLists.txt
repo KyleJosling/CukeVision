@@ -131,14 +131,14 @@ add_executable(stereoCamNode src/stereoCamNode.cpp src/cukeDetector.cpp)
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
 
-add_executable(stemDetectionNode src/stemDetectionNode.cpp)
- target_link_libraries(stemDetectionNode
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-   ${pid_LIBRARY}
- )
-add_definitions(-std=c++11 -g -O3)
-add_definitions(-DGUI)
+#add_executable(stemDetectionNode src/stemDetectionNode.cpp)
+# target_link_libraries(stemDetectionNode
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+#   ${pid_LIBRARY}
+# )
+#add_definitions(-std=c++11 -g -O3)
+#add_definitions(-DGUI)
 
 add_executable(baseFrameBroadcasterNode src/baseFrameBroadcasterNode.cpp)
  target_link_libraries(baseFrameBroadcasterNode

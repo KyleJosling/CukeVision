@@ -38,7 +38,6 @@
 #include <geometric_shapes/solid_primitive_dims.h>
 
 
-
 class worldNode {
 
     public:
@@ -107,7 +106,7 @@ class worldNode {
         
 
         void moveToGoal();
-        bool gripperAction(double fingerTurn);
+        void gripperAction(bool open, trajectory_msgs::JointTrajectory &posture);
 
         // Utilities
         void printRobotPose();
@@ -117,6 +116,7 @@ class worldNode {
         // void addTable();
         void removeCucumber();
         void defineCartesianPose();
+        void addTestObject();
 
 };
 
