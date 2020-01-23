@@ -126,7 +126,6 @@ add_executable(stereoCamNode src/stereoCamNode.cpp src/cukeDetector.cpp)
  target_link_libraries(stereoCamNode
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
-   ${pid_LIBRARY}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
@@ -135,7 +134,6 @@ add_definitions(-DGUI)
 # target_link_libraries(stemDetectionNode
 #   ${catkin_LIBRARIES}
 #   ${OpenCV_LIBRARIES}
-#   ${pid_LIBRARY}
 # )
 #add_definitions(-std=c++11 -g -O3)
 #add_definitions(-DGUI)
@@ -149,7 +147,6 @@ add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
  target_link_libraries(boundingBoxNode
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
-   ${pid_LIBRARY}
    ${realsense2_LIBRARY}
  )
 add_definitions(-std=c++11 -g -O3)
@@ -159,7 +156,6 @@ add_executable(worldNode src/worldNode.cpp)
  target_link_libraries(worldNode
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
-   ${pid_LIBRARY}
    ${realsense2_LIBRARY}
    ${Eigen3_LIBRARY}
    ${kinova_driver_LIBRARIES}
