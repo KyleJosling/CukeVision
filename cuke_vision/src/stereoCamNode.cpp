@@ -53,9 +53,11 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
         boxes.clear();
         
         detector.detectCukes(colorFrame, boxes);
+        ROS_INFO("Meeperson");
         // TODO should be boxes.size();
         for (int i = 0; i < 1; i++) {
-            draw3DBounding(boxes[i]);
+            if (boxes.size() > 0)
+                draw3DBounding(boxes[i]);
         }
 
         // Publish the message
@@ -84,7 +86,13 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
 
     // Points on plane on the front of the cucumber
     float point[3];
-    geometry_msgs::Point pTL, pTR, pBL, pBR;
+    geometry_msgs::Point pM, pTL, pTR, pBL, pBR;
+
+    // Centre point
+    compute3DPoint(pixel_x + box_width/2, pixel_y + box_height/2, frontDepth, point);
+    pM.x = point[0];
+    pM.y = point[1];
+    pM.z = point[2];
 
     // Top left
     compute3DPoint(pixel_x, pixel_y, frontDepth, point);
@@ -112,21 +120,22 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     
     // // TODO can seperate this into one function
     cObj.id = "cucumber";
-    cObj.header.frame_id = "world";
+    cObj.header.frame_id = "camera_link";
 
     // Define primitive and add its dimensions
     cObj.primitives.resize(1);
     cObj.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
     cObj.primitives[0].dimensions.resize(geometric_shapes::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::CYLINDER>::value);
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = pBL.y - pTL.y;
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = (pTR.x - pTL.x)/2;
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.33; // TODO these are hardcoded bc of bug in last approach, FIX
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.02;
 
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = (pTL.z + pTR.z)/2;
-    cObj.primitive_poses[0].position.y = (pTL.y + pTR.y)/2;
-    cObj.primitive_poses[0].position.z = (pTL.x + pTR.x)/2;
+    cObj.primitive_poses[0].position.x = pM.z;
+    cObj.primitive_poses[0].position.y = -pM.x;
+    cObj.primitive_poses[0].position.z = -pM.y;
 
+    std::cout << "X Y Z of cucumber is : " << pM.x << " " << pM.y << " " << pM.z << " " << std::endl;
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cucumberPub.publish(cObj);
 

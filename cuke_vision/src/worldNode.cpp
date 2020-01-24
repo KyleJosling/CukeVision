@@ -57,6 +57,7 @@ worldNode::worldNode() {
     gripperGroupInterface = new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup);
 
     armGroupInterface->setEndEffectorLink(robotType + "_end_effector");
+    
 
     // Finger action client
     fingerClient = new actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>
@@ -170,6 +171,23 @@ void worldNode::defineCartesianPose() {
     graspPose.pose.orientation.y = q.y();
     graspPose.pose.orientation.z = q.z();
     graspPose.pose.orientation.w = q.w();
+
+    // Place pose
+    placePose.header.frame_id = "world";
+    placePose.header.stamp = ros::Time::now();
+
+    // EULER ZYZ (-pi/4, pi/2, pi/2)
+    // Dummy numbers for position since position is defined by cucumber
+    // location
+    placePose.pose.position.x = -0.2;
+    placePose.pose.position.y = 0.4;
+    placePose.pose.position.z = 0.4;
+
+    q = EulerZYZtoQuaternion(0, M_PI/2, M_PI/2);
+    placePose.pose.orientation.x = q.x(); // TODO could make this one line
+    placePose.pose.orientation.y = q.y();
+    placePose.pose.orientation.z = q.z();
+    placePose.pose.orientation.w = q.w();
 }
 
 // Closes or open gripper 
@@ -193,7 +211,7 @@ void worldNode::gripperAction(bool open, trajectory_msgs::JointTrajectory &postu
 void worldNode::moveToGoal() {
     
     // Set the target pose
-    armGroupInterface->setPoseTarget(graspPose);
+    armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
 
     // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
@@ -224,6 +242,7 @@ void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     cObjPub.publish(objectMsg);
 
     planningSceneInterface->applyCollisionObject(objectMsg);
+    ROS_INFO("Cuke has been applied.");
 }
 
 // Removes a collision object from the world
@@ -247,26 +266,32 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     grasps[0].grasp_pose.header.frame_id = "world";
     q = EulerZYZtoQuaternion(0, M_PI/2, M_PI/2);
     tf::quaternionTFToMsg(q, grasps[0].grasp_pose.pose.orientation);
-    grasps[0].grasp_pose.pose.position.x = 0.5;
+    grasps[0].grasp_pose.pose.position.x = 0.55;
     grasps[0].grasp_pose.pose.position.y = 0.0;
     grasps[0].grasp_pose.pose.position.z = 0.4;
 
     // Pre-grasp approach
     grasps[0].pre_grasp_approach.direction.header.frame_id = "m1n6s200_end_effector"; // TODO make constant
     grasps[0].pre_grasp_approach.direction.vector.z = 1.0; // Approach in Z direction of end effector
-    grasps[0].pre_grasp_approach.min_distance = 0.1;
-    grasps[0].pre_grasp_approach.desired_distance = 0.25;
+    grasps[0].pre_grasp_approach.min_distance = 0.07;
+    grasps[0].pre_grasp_approach.desired_distance = 0.10;
     
     grasps[0].post_grasp_retreat.direction.header.frame_id = "m1n6s200_end_effector"; 
     grasps[0].post_grasp_retreat.direction.vector.z = -1.0;
-    grasps[0].post_grasp_retreat.min_distance = 0.1;
-    grasps[0].post_grasp_retreat.desired_distance = 0.25;
+    grasps[0].post_grasp_retreat.min_distance = 0.07;
+    grasps[0].post_grasp_retreat.desired_distance = 0.10;
 
     // Open and close gripper when the time strikes 12 and the planets are aligned
     gripperAction( true,  grasps[0].pre_grasp_posture);
     gripperAction( false, grasps[0].grasp_posture);
 
     armGroupInterface->pick("target_cylinder", grasps);
+
+    // Set tolerances (TODO TEST)
+    armGroupInterface->setGoalPositionTolerance(0.03);
+    armGroupInterface->setGoalOrientationTolerance(0.26);
+
+    moveToGoal(); // TODO test function
 }
 
 int main (int argc, char** argv ) {

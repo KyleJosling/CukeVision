@@ -94,8 +94,8 @@ class worldNode {
 
         // Various poses
         geometry_msgs::Pose homePose;
-        geometry_msgs::PoseStamped preGraspPose;
         geometry_msgs::PoseStamped graspPose;
+        geometry_msgs::PoseStamped placePose;
 
         // Collision objects
         moveit_msgs::CollisionObject cObj;
