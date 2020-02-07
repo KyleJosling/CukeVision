@@ -85,7 +85,6 @@ class worldNode {
         // Planning scene interface
         moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
 
-
         planning_scene_monitor::PlanningSceneMonitorPtr planningSceneMonitor;
         planning_scene::PlanningScenePtr planningScene;
 
@@ -98,8 +97,8 @@ class worldNode {
         geometry_msgs::PoseStamped placePose;
 
         // Collision objects
-        moveit_msgs::CollisionObject cObj;
-        moveit_msgs::AttachedCollisionObject aObj;
+        moveit_msgs::CollisionObject cObj; // Current cucumber to pick
+        moveit_msgs::AttachedCollisionObject aObj; // Current attached cucumber
         
         // Cucumbers
         std::stack<moveit_msgs::CollisionObject> cucumbers;
@@ -110,9 +109,11 @@ class worldNode {
 
         // Utilities
         void printRobotPose();
+        void printAttachedObjects();
 
         // Collision functions
         void pickCucumber(const moveit_msgs::CollisionObject &objectMsg);
+        void placeCucumber();
         // void addTable();
         void removeCucumber();
         void defineCartesianPose();

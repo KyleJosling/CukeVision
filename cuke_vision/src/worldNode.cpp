@@ -49,7 +49,7 @@ worldNode::worldNode() {
     // Construt a planning scene that maintains a state of the world TODO
     // diff?
     planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
-    planningScene.reset(new planning_scene::PlanningScene(robotModel)); 
+    // planningScene.reset(new planning_scene::PlanningScene(robotModel)); 
     // planningSceneMonitor.reset(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
     // Initialize the move group interface and planning scene interface
@@ -85,9 +85,8 @@ worldNode::worldNode() {
     // addTable();
     defineCartesianPose();
     addTestObject();
-    // gripperAction(0);
-    // gripperAction(6400);
-    // moveToGoal();
+    pickCucumber(cObj);
+    placeCucumber();
 }
 
 // World destructor
@@ -125,11 +124,15 @@ void worldNode::addTestObject() {
 
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cObjPub.publish(cObj);
-
-    std::vector<moveit_msgs::CollisionObject> cObjs;
-    cObjs.push_back(cObj);
+ 
     planningSceneInterface->applyCollisionObject(cObj);
-    pickCucumber(cObj);
+    
+    // See whats up
+    // std::vector<std::string> aObjs = planningSceneInterface->getKnownObjectNames();
+    // std::cout << aObjs.size() << std::endl;
+    // for (int i = 0; i < aObjs.size(); i++) {
+    //     std::cout << aObjs[i] << std::endl;
+    // }
 }
 
 // Prints the current pose of the robot
@@ -148,6 +151,23 @@ void worldNode::printRobotPose() {
         currentPose.pose.orientation.y << " " <<
         currentPose.pose.orientation.z << " " <<
         currentPose.pose.orientation.w << std::endl;
+}
+
+// Prints the current attached objects on the end effector TODO put these in
+// utility class?
+void worldNode::printAttachedObjects() {
+
+    // planningScene.robot_state.attached_collision_objects.clear();
+    std::map<std::string, moveit_msgs::AttachedCollisionObject> aObjs;
+    aObjs = planningSceneInterface->getAttachedObjects();
+    if (aObjs.size() == 0) {
+        ROS_INFO("There are no attached objects.");
+    } else {
+        std::map<std::string, moveit_msgs::AttachedCollisionObject>::iterator it;
+        for (it = aObjs.begin(); it!=aObjs.end(); ++it) {
+            ROS_INFO("Attached object : %s", (it->first).c_str());
+        }
+    }
 }
 
 // Define preset cartesian poses
@@ -181,9 +201,9 @@ void worldNode::defineCartesianPose() {
     // location
     placePose.pose.position.x = -0.2;
     placePose.pose.position.y = 0.4;
-    placePose.pose.position.z = 0.4;
+    placePose.pose.position.z = 0.1;
 
-    q = EulerZYZtoQuaternion(0, M_PI/2, M_PI/2);
+    q = EulerZYZtoQuaternion(0, M_PI, M_PI/2);
     placePose.pose.orientation.x = q.x(); // TODO could make this one line
     placePose.pose.orientation.y = q.y();
     placePose.pose.orientation.z = q.z();
@@ -210,8 +230,11 @@ void worldNode::gripperAction(bool open, trajectory_msgs::JointTrajectory &postu
 // TODO test function
 void worldNode::moveToGoal() {
     
-    // Set the target pose
-    armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
+    armGroupInterface->setGoalPositionTolerance(0.03);
+    armGroupInterface->setGoalOrientationTolerance(0.26);
+
+    // // Set the target pose
+    armGroupInterface->setNamedTarget("Home");
 
     // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
@@ -219,17 +242,19 @@ void worldNode::moveToGoal() {
 
     ROS_INFO("planning successful ? : %d ", success);
 
+    armGroupInterface->execute(plan);
+
+    // Set the target pose
+    // armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
+    armGroupInterface->setPoseTarget(placePose);
+
+    success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+    ROS_INFO("planning successful ? : %d ", success);
+
     // armGroupInterface->execute(plan);
     armGroupInterface->move();
 
-    // // // Set the target pose
-    // armGroupInterface->setNamedTarget("Home");
-
-    // success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-    // ROS_INFO("planning successful ? : %d ", success);
-
-    // armGroupInterface->execute(plan);
 }
 
 // Receives a new cucumber
@@ -248,6 +273,22 @@ void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
 // Removes a collision object from the world
 void worldNode::removeCucumber() {
 
+    // Remove the attached object
+    moveit_msgs::AttachedCollisionObject detachObject;
+    detachObject.object.id = "target_cylinder";
+    detachObject.link_name = "m1n6s200_end_effector";
+    detachObject.object.operation = detachObject.object.REMOVE;// TODO
+
+    // Create a planning scene diff message, remove the cucumber
+    // from the gripper, and the world
+    moveit_msgs::PlanningScene ps;
+    ps.robot_state.attached_collision_objects.clear();
+    ps.robot_state.attached_collision_objects.push_back(detachObject);
+    ps.robot_state.is_diff = true;
+    ps.world.collision_objects.clear();
+    ps.world.collision_objects.push_back(detachObject.object);
+    ps.is_diff = true;
+    planningSceneInterface->applyPlanningScene(ps);
 }
 
 // Pick cucumber
@@ -286,12 +327,12 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     gripperAction( false, grasps[0].grasp_posture);
 
     armGroupInterface->pick("target_cylinder", grasps);
+}
 
-    // Set tolerances (TODO TEST)
-    armGroupInterface->setGoalPositionTolerance(0.03);
-    armGroupInterface->setGoalOrientationTolerance(0.26);
+// Places the current attached collision object in the cucumber place area
+void worldNode::placeCucumber() {
+    
 
-    moveToGoal(); // TODO test function
 }
 
 int main (int argc, char** argv ) {
