@@ -105,7 +105,8 @@ class worldNode {
         
 
         void moveToGoal();
-        void gripperAction(bool open, trajectory_msgs::JointTrajectory &posture);
+        void defineGripperPosture(bool open, trajectory_msgs::JointTrajectory &posture);
+        void gripperAction(bool open);
 
         // Utilities
         void printRobotPose();

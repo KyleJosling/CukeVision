@@ -6,6 +6,7 @@
 #include "cuke_vision/worldNode.hpp"
 
 const double FINGER_MAX = 6400;
+const double zed = 0.50;
 
 // TODO add this to some utility file
 tf::Quaternion EulerZYZtoQuaternion(double tz1, double ty, double tz2)
@@ -85,8 +86,12 @@ worldNode::worldNode() {
     // addTable();
     defineCartesianPose();
     addTestObject();
+    // ros::Duration(1.0).sleep();
     pickCucumber(cObj);
-    placeCucumber();
+    // moveToGoal();
+    // // placeCucumber();
+    // gripperAction(true);
+    // removeCucumber();
 }
 
 // World destructor
@@ -116,11 +121,12 @@ void worldNode::addTestObject() {
     cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.25;
     cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.015;
 
+    
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = 0.55;
-    cObj.primitive_poses[0].position.y = 0.0;
-    cObj.primitive_poses[0].position.z = 0.4;
+    cObj.primitive_poses[0].position.x = 0.0;
+    cObj.primitive_poses[0].position.y = -0.4;
+    cObj.primitive_poses[0].position.z = zed;
 
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cObjPub.publish(cObj);
@@ -183,10 +189,10 @@ void worldNode::defineCartesianPose() {
     // Dummy numbers for position since position is defined by cucumber
     // location
     graspPose.pose.position.x = 0.0;
-    graspPose.pose.position.y = 0.5;
-    graspPose.pose.position.z = 0.45;
+    graspPose.pose.position.y = -0.4;
+    graspPose.pose.position.z = zed;
 
-    q = EulerZYZtoQuaternion(0, M_PI/2, M_PI/2);
+    q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
     graspPose.pose.orientation.x = q.x(); // TODO could make this one line
     graspPose.pose.orientation.y = q.y();
     graspPose.pose.orientation.z = q.z();
@@ -210,8 +216,17 @@ void worldNode::defineCartesianPose() {
     placePose.pose.orientation.w = q.w();
 }
 
+void worldNode::gripperAction(bool open) {
+    if (open) {
+      gripperGroupInterface->setNamedTarget("Open");
+    } else {
+      gripperGroupInterface->setNamedTarget("Close");
+    }
+    gripperGroupInterface->move();
+}
+
 // Closes or open gripper 
-void worldNode::gripperAction(bool open, trajectory_msgs::JointTrajectory &posture) {
+void worldNode::defineGripperPosture(bool open, trajectory_msgs::JointTrajectory &posture) {
     
     posture.joint_names.resize(2);
     posture.joint_names[0] = "m1n6s200_joint_finger_1";
@@ -233,12 +248,14 @@ void worldNode::moveToGoal() {
     armGroupInterface->setGoalPositionTolerance(0.03);
     armGroupInterface->setGoalOrientationTolerance(0.26);
 
-    // // Set the target pose
-    armGroupInterface->setNamedTarget("Home");
+    // // // Set the target pose
+    // // armGroupInterface->setNamedTarget("Home");
+    armGroupInterface->setPoseTarget(graspPose);
 
-    // TODO make member variable?
+    // // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    bool success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+    bool success = false;
+    success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
     ROS_INFO("planning successful ? : %d ", success);
 
@@ -305,11 +322,11 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     
     // Grasp pose (same as already set really)
     grasps[0].grasp_pose.header.frame_id = "world";
-    q = EulerZYZtoQuaternion(0, M_PI/2, M_PI/2);
+    q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
     tf::quaternionTFToMsg(q, grasps[0].grasp_pose.pose.orientation);
-    grasps[0].grasp_pose.pose.position.x = 0.55;
-    grasps[0].grasp_pose.pose.position.y = 0.0;
-    grasps[0].grasp_pose.pose.position.z = 0.4;
+    grasps[0].grasp_pose.pose.position.x = 0.0;
+    grasps[0].grasp_pose.pose.position.y = -0.4;
+    grasps[0].grasp_pose.pose.position.z = zed;
 
     // Pre-grasp approach
     grasps[0].pre_grasp_approach.direction.header.frame_id = "m1n6s200_end_effector"; // TODO make constant
@@ -323,9 +340,12 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     grasps[0].post_grasp_retreat.desired_distance = 0.10;
 
     // Open and close gripper when the time strikes 12 and the planets are aligned
-    gripperAction( true,  grasps[0].pre_grasp_posture);
-    gripperAction( false, grasps[0].grasp_posture);
-
+    defineGripperPosture( true,  grasps[0].pre_grasp_posture);
+    defineGripperPosture( false, grasps[0].grasp_posture);
+    
+    // TODO test
+    // armGroupInterface->setGoalPositionTolerance(0.03);
+    // armGroupInterface->setGoalOrientationTolerance(0.26);
     armGroupInterface->pick("target_cylinder", grasps);
 }
 
