@@ -1,29 +1,34 @@
-#include <Stepper.h>
+#include <AccelStepper.h>
 #include <ros.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
 
-// 1.8 deg/step
-const int stepsPerRevolution = 200;
+// Define stepper motor connections and motor interface type. Motor interface type must be set to 1 when using a driver:
+#define dirPin 2
+#define stepPin 3
+#define motorInterfaceType 1
 
-// Create Stepper instance
-Stepper stepper(stepsPerRevolution, 8, 9, 10, 11);
+// Create a new instance of the AccelStepper class:
+AccelStepper stepper = AccelStepper(motorInterfaceType, stepPin, dirPin);
 
 // Callback, ros nodehandle, subscriber
-void messageCallback( const std_msgs::String &msg) {
-    digitalWrite(13, HIGH-digitalRead(13));
-	stepper.step(stepsPerRevolution);
-	delay(500);
-	stepper.step(-stepsPerRevolution);
-	delay(500);
+void messageCallback( const std_msgs::Int32 &msg) {
+  
+  digitalWrite(13, HIGH);
+  // Set the target position:
+  stepper.moveTo(msg.data);
+  // Run to target position with set speed and acceleration/deceleration:
+  stepper.runToPosition();
 }
 
 ros::NodeHandle nh;
-ros::Subscriber<std_msgs::String> sub("stepper_control", &messageCallback);
+ros::Subscriber<std_msgs::Int32> sub("stepper_control", &messageCallback);
 
 void setup() {
 
-  // 60RPM
-  stepper.setSpeed(60);
+  // Set the maximum speed and acceleration:
+  stepper.setMaxSpeed(10000);
+  stepper.setAcceleration(6000);
 
   // Initialize LED pin
   pinMode(13, OUTPUT);
