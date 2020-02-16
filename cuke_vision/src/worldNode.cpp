@@ -5,8 +5,11 @@
 // ----------------------------------------------------------
 #include "cuke_vision/worldNode.hpp"
 
-const double FINGER_MAX = 6400;
-const double zed = 0.50;
+const double FINGER_MAX = 6400; // TODO is this still required?
+std::vector<std::vector<double>> testCucumbers;
+double ex;
+double why;
+double zed;
 
 // TODO add this to some utility file
 tf::Quaternion EulerZYZtoQuaternion(double tz1, double ty, double tz2)
@@ -85,13 +88,25 @@ worldNode::worldNode() {
     // TEST function
     // addTable();
     defineCartesianPose();
-    addTestObject();
-    // ros::Duration(1.0).sleep();
-    pickCucumber(cObj);
-    // moveToGoal();
-    // // placeCucumber();
-    // gripperAction(true);
-    // removeCucumber();
+    loadCucumbersFromFile();
+
+    // Cycle through cucumbers in params loaded
+    for (int i = 0; i < sizeof(zed); i++) {
+        ex  = testCucumbers[0][i]; 
+        why = testCucumbers[1][i]; 
+        zed = testCucumbers[2][i]; 
+        ROS_INFO("New cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
+        // Three tests per cucumber
+        for (int j = 0; j < 3; j++) {
+            addTestObject();
+            // armGroupInterface->setMaxVelocityScalingFactor(0.01); TODO doesn't work for cartesian paths..
+            pickCucumber(cObj);
+            moveToGoal();
+            // placeCucumber();
+            removeCucumber();
+            gripperAction(true);
+        }
+    }
 }
 
 // World destructor
@@ -103,6 +118,15 @@ worldNode::~worldNode() {
     delete armGroupInterface;
     delete gripperGroupInterface;
     delete fingerClient;
+
+}
+
+// Test function for loading in cucumbers from yaml file
+void worldNode::loadCucumbersFromFile() {
+    testCucumbers.resize(3); 
+    nH.getParam("cukeX", testCucumbers[0]);
+    nH.getParam("cukeY", testCucumbers[1]);
+    nH.getParam("cukeZ", testCucumbers[2]);
 
 }
 
@@ -124,8 +148,8 @@ void worldNode::addTestObject() {
     
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = 0.0;
-    cObj.primitive_poses[0].position.y = -0.4;
+    cObj.primitive_poses[0].position.x = ex;
+    cObj.primitive_poses[0].position.y = why;
     cObj.primitive_poses[0].position.z = zed;
 
     cObj.operation = moveit_msgs::CollisionObject::ADD;
@@ -188,8 +212,8 @@ void worldNode::defineCartesianPose() {
     // EULER ZYZ (-pi/4, pi/2, pi/2)
     // Dummy numbers for position since position is defined by cucumber
     // location
-    graspPose.pose.position.x = 0.0;
-    graspPose.pose.position.y = -0.4;
+    graspPose.pose.position.x = ex;
+    graspPose.pose.position.y = why;
     graspPose.pose.position.z = zed;
 
     q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
@@ -245,21 +269,21 @@ void worldNode::defineGripperPosture(bool open, trajectory_msgs::JointTrajectory
 // TODO test function
 void worldNode::moveToGoal() {
     
-    armGroupInterface->setGoalPositionTolerance(0.03);
-    armGroupInterface->setGoalOrientationTolerance(0.26);
+    // armGroupInterface->setGoalPositionTolerance(0.03);
+    // armGroupInterface->setGoalOrientationTolerance(0.26);
 
     // // // Set the target pose
     // // armGroupInterface->setNamedTarget("Home");
-    armGroupInterface->setPoseTarget(graspPose);
+    // armGroupInterface->setPoseTarget(graspPose);
 
     // // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
     bool success = false;
-    success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+    // success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
-    ROS_INFO("planning successful ? : %d ", success);
+    // ROS_INFO("planning successful ? : %d ", success);
 
-    armGroupInterface->execute(plan);
+    // armGroupInterface->execute(plan);
 
     // Set the target pose
     // armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
@@ -324,8 +348,8 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     grasps[0].grasp_pose.header.frame_id = "world";
     q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
     tf::quaternionTFToMsg(q, grasps[0].grasp_pose.pose.orientation);
-    grasps[0].grasp_pose.pose.position.x = 0.0;
-    grasps[0].grasp_pose.pose.position.y = -0.4;
+    grasps[0].grasp_pose.pose.position.x = ex;
+    grasps[0].grasp_pose.pose.position.y = why;
     grasps[0].grasp_pose.pose.position.z = zed;
 
     // Pre-grasp approach
@@ -347,6 +371,7 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     // armGroupInterface->setGoalPositionTolerance(0.03);
     // armGroupInterface->setGoalOrientationTolerance(0.26);
     armGroupInterface->pick("target_cylinder", grasps);
+    // armGroupInterface->setMaxVelocityScalingFactor(1.0);
 }
 
 // Places the current attached collision object in the cucumber place area

@@ -32,6 +32,7 @@ find_package(kinova_driver REQUIRED)
 MESSAGE(WARNING "install path ${OpenCV_INSTALL_PATH}")
 MESSAGE(WARNING "include dirs ${OpenCV_INCLUDE_DIRS} ")
 MESSAGE(WARNING "library dirs ${OpenCV_LIBRARIES} ")
+MESSAGE(WARNING "install path ${moveit_core_INSTALL_PATH}")
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -159,6 +160,13 @@ add_executable(worldNode src/worldNode.cpp)
    ${realsense2_LIBRARY}
    ${Eigen3_LIBRARY}
    ${kinova_driver_LIBRARIES}
+ )
+add_definitions(-std=c++11 -g -O3)
+add_definitions(-DGUI)
+
+add_executable(stepperControlNode src/stepperControlNode.cpp)
+ target_link_libraries(stepperControlNode
+   ${catkin_LIBRARIES}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)

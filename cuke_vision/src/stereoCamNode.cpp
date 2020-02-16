@@ -159,7 +159,7 @@ void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, flo
 
 int main(int argc, char** argv) {
 
-    std::string nodeName = "stereoCamNode";
+    std::string nodeName = "stereoCamNode"; // TODO should this happen in object constructor ..
     ros::init(argc, argv, nodeName);
 
     stereoCamNode sC;

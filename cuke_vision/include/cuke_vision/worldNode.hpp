@@ -111,6 +111,7 @@ class worldNode {
         // Utilities
         void printRobotPose();
         void printAttachedObjects();
+        void loadCucumbersFromFile();
 
         // Collision functions
         void pickCucumber(const moveit_msgs::CollisionObject &objectMsg);
