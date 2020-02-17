@@ -114,7 +114,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(cukeVisionNode src/cukeVisionNode.cpp src/detectObject.cpp)
+add_executable(cukeVisionNode src/cukeVisionNode.cpp)
  target_link_libraries(cukeVisionNode
    ${OpenCV_LIBRARIES}
    ${catkin_LIBRARIES}
@@ -130,19 +130,6 @@ add_executable(stereoCamNode src/stereoCamNode.cpp src/cukeDetector.cpp)
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
-
-#add_executable(stemDetectionNode src/stemDetectionNode.cpp)
-# target_link_libraries(stemDetectionNode
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
-#add_definitions(-std=c++11 -g -O3)
-#add_definitions(-DGUI)
-
-add_executable(baseFrameBroadcasterNode src/baseFrameBroadcasterNode.cpp)
- target_link_libraries(baseFrameBroadcasterNode
-   ${catkin_LIBRARIES}
-)
 
 add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
  target_link_libraries(boundingBoxNode

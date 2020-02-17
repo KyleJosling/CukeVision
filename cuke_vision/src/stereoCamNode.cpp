@@ -6,6 +6,7 @@
 // ----------------------------------------------------------
 #include "cuke_vision/stereoCamNode.hpp"
 
+// TODO cleanup
 // Initializer list
 stereoCamNode::stereoCamNode():
     it(nH),

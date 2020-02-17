@@ -1,3 +1,9 @@
+// ----------------------------------------------------------
+// NAME: cukeVision FSM Node
+// DESCRIPTION: This node controls the whole system through
+// a sequence of states.
+// ----------------------------------------------------------
+
 #include <ros/ros.h>
 #include <iostream>
 
