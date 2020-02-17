@@ -56,11 +56,8 @@ worldNode::worldNode() {
     robot_model_loader::RobotModelLoader robotModelLoader("robot_description");
     robotModel = robotModelLoader.getModel();
 
-    // Construt a planning scene that maintains a state of the world TODO
-    // diff?
+    // Construt a planning scene that maintains a state of the world
     planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
-    // planningScene.reset(new planning_scene::PlanningScene(robotModel)); 
-    // planningSceneMonitor.reset(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
     // Initialize the move group interface and planning scene interface
     armGroupInterface = new moveit::planning_interface::MoveGroupInterface(armPlanningGroup);
@@ -75,24 +72,18 @@ worldNode::worldNode() {
    
     // Wait for finger action server to come up
     while(robotConnected && !fingerClient->waitForServer(ros::Duration(5.0))){
-      ROS_INFO("Waiting for the finger action server to come up");
+      ROS_INFO("WORLD NODE : Waiting for the finger action server to come up");
     }
 
-    ROS_INFO("Finger action server is up");
+    ROS_INFO("WORLD NODE: Finger action server is up!");
     
     // We can print the name of the reference frame for this robot.
     ROS_INFO("Reference frame: %s", armGroupInterface->getPlanningFrame().c_str());
     // We can also print the name of the end-effector link for this group.
     ROS_INFO("Reference frame: %s", armGroupInterface->getEndEffectorLink().c_str());
 
-    // Set home position, convert to geometry_msgs for ease of use
-    tf::Pose tempHomePose;
-    tempHomePose.setOrigin(tf::Vector3(0.21486, -0.203351, 0.418802));
-    tempHomePose.setRotation(tf::Quaternion(0.644305, 0.320657, 0.42346, 0.550211));
-    tf::poseTFToMsg(tempHomePose, homePose); 
-
-    // TEST function
-    // addTable();
+    // TODO test functions
+    // addRobotFrame();
     defineCartesianPose();
     loadCucumbersFromFile();
 
@@ -218,24 +209,7 @@ void worldNode::printAttachedObjects() {
 void worldNode::defineCartesianPose() {
 
     tf::Quaternion q;
-
-    // Grasp pose
-    graspPose.header.frame_id = "world";
-    graspPose.header.stamp = ros::Time::now();
-
-    // EULER ZYZ (-pi/4, pi/2, pi/2)
-    // Dummy numbers for position since position is defined by cucumber
-    // location
-    graspPose.pose.position.x = ex;
-    graspPose.pose.position.y = why;
-    graspPose.pose.position.z = zed;
-
-    q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
-    graspPose.pose.orientation.x = q.x(); // TODO could make this one line
-    graspPose.pose.orientation.y = q.y();
-    graspPose.pose.orientation.z = q.z();
-    graspPose.pose.orientation.w = q.w();
-
+    
     // Place pose
     placePose.header.frame_id = "m1n6s200_link_base";
     placePose.header.stamp = ros::Time::now();
@@ -287,18 +261,10 @@ void worldNode::moveToGoal() {
     // armGroupInterface->setGoalPositionTolerance(0.03);
     // armGroupInterface->setGoalOrientationTolerance(0.26);
 
-    // // // Set the target pose
-    // // armGroupInterface->setNamedTarget("Home");
-    // armGroupInterface->setPoseTarget(graspPose);
 
     // // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
     bool success = false;
-    // success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-    // ROS_INFO("planning successful ? : %d ", success);
-
-    // armGroupInterface->execute(plan);
 
     // Set the target pose
     // armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
