@@ -1,0 +1,80 @@
+# To launch from bag file, WITH point cloud:
+roslaunch realsense2_camera rs_from_file.launch rosbag_filename:="filename" enable_pointcloud:=true pointcloud_texture_stream:=RS2_STREAM_ANY
+
+
+
+# To create occupancy map from point cloud topic using octomap_server
+# Edit octomap_custom.launch /opt/ros/kinetic/share/octomap_server/launch/
+rosrun rviz rviz
+# Launch the realsense2_camera node like above then IMMEDIATELY have to do:
+roslaunch octomap_server octomap_custom.launch
+# Fixed frame should be camera_link
+# Add the points topic as well as occupied_cells_vis_array
+# See custom octomap for frame to set for making map. Then you have to have a moving transform between
+# a fixed frame and that frame. eg:
+# broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link", "world")); // TODO add robot type
+
+
+
+
+# To get pointcloud data in octomap:
+# Need a static transform between camera frame and world frame
+
+# 1. Launch moveit
+roslaunch m1n6s300_moveit_config m1n6s300_virtual_robot_demo.launch
+# With custom launch filez with the octomap configured, refer to 
+# moveit 3d perception tutorial
+# right now the "...demo.launch" file is configured with the sensors_realsense.yaml file
+#btw the yaml file is referred to in the sensors_manager.launch file
+
+# 2. Launch static_tf
+rosrun tf static_transform_publisher 0 0.35 0.10 3.14 0 0 /world /camera_link 100
+
+# 3. Launch the realsense node
+roslaunch realsense2_camera rs_from_file.launch rosbag_filename:=/home/kylejosling/cuke_ws/bags/outdoors.bag enable_pointcloud:=true pointcloud_texture_stream:=RS2_STREAM_ANY
+
+
+
+04829034
+
+# To launch rosserial node and command motor:
+# 1. launch roscore
+roscore
+# 2. Launch python node
+roslaunch rosserial_python serial_node.py /dev/ttyACM0
+
+# 3. Launch stepper control node
+rosrun cuke_vision stepperControlNode
+
+# 3. Publish Int32 on positionControl topic (you can "tab" through a lot of these)
+rostopic pub /positionControl std_msgs/Float32 "data: 0.0"
+
+
+
+
+
+Problems
+
+21/01/2020
+
+- Ran into problems where I got a "no frame specified for position constraint"
+- Redownloaded kinova_moveit, used m1n6s200 pull request to to get config files, but left everything else
+- Had to modify srdf to make it work, change pose names to match 300's, change arm group, add parent group to end effector, etc.
+  Pretty much just compared the srdfs
+- Still getting the error, but not with pick_place demo?
+- Havent tested on real arm yet
+
+15/02/2020
+- Trying to do frame transform shit, I don't know what the fuck is happening with the virtual_joint
+- I think I'm just going to use link_base as my fixed frame and then transform it
+- link_base will be transformed from world based on the stepper position, camera will be transformed to link_base 
+- And everyone lived happily ever after
+- Warnings from today included skipping virtual joint IDK why dude 
+- IDK removed the world link from urdf, now doing a transform between root and world. also added planar virtual joint
+
+Other Notes
+
+- Changed directory scaling in trajectory_execution.launch
+- Non-zero third finger gripper command?
+- Have realsense node started BEFORE launching moveit? Then start tf?
+- Changed kinova_driver with this commit : https://github.com/Kinovarobotics/kinova-ros/pull/100/commits/82c21cef720622f2da8c23d1e03e9e2cfd86f41a?file-filters%5B%5D= 
