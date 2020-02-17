@@ -22,7 +22,7 @@ void messageCallback( const std_msgs::Int32 &msg) {
 }
 
 ros::NodeHandle nh;
-ros::Subscriber<std_msgs::Int32> sub("stepper_control", &messageCallback);
+ros::Subscriber<std_msgs::Int32> sub("stepperControl", &messageCallback);
 
 void setup() {
 

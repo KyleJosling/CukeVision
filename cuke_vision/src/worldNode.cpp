@@ -7,9 +7,9 @@
 
 const double FINGER_MAX = 6400; // TODO is this still required?
 std::vector<std::vector<double>> testCucumbers;
-double ex;
-double why;
-double zed;
+double ex  = 0.35;
+double why = -0.40;
+double zed = 0.20;
 
 // TODO add this to some utility file
 tf::Quaternion EulerZYZtoQuaternion(double tz1, double ty, double tz2)
@@ -33,10 +33,16 @@ tf::Quaternion EulerZYZtoQuaternion(double tz1, double ty, double tz2)
 // Constructor
 worldNode::worldNode() {
     
-    // Initialize subscribers and publishers
+    // Subscriber to cucumber objects
     cukeSub = nH.subscribe(cukeTopic, 100, &worldNode::objectCallback, this);
+
+    // Object publishers
     cObjPub = nH.advertise<moveit_msgs::CollisionObject>(cObjTopic, 10);
     aObjPub = nH.advertise<moveit_msgs::AttachedCollisionObject>(aObjTopic, 10);
+
+    // stepper controller publisher
+    positionControlPub = nH.advertise<std_msgs::Float32>(positionControlTopic, 10);
+
 
     // Get robot type, check if robot is connected
     nH.param<std::string>("/robot_type", robotType, "m1n6s200");
@@ -91,21 +97,29 @@ worldNode::worldNode() {
     loadCucumbersFromFile();
 
     // Cycle through cucumbers in params loaded
-    for (int i = 0; i < sizeof(zed); i++) {
+    for (int i = 0; i < (testCucumbers[0]).size(); i++) {
         ex  = testCucumbers[0][i]; 
         why = testCucumbers[1][i]; 
         zed = testCucumbers[2][i]; 
+
+        // Move to x position TODO test 
+        std_msgs::Float32 desiredWorldPositionMsg;
+        desiredWorldPositionMsg.data = ex;
+        positionControlPub.publish(desiredWorldPositionMsg);
+        ros::Duration(1.0).sleep();
+        
         ROS_INFO("New cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
-        // Three tests per cucumber
-        for (int j = 0; j < 3; j++) {
-            addTestObject();
-            // armGroupInterface->setMaxVelocityScalingFactor(0.01); TODO doesn't work for cartesian paths..
-            pickCucumber(cObj);
-            moveToGoal();
-            // placeCucumber();
-            removeCucumber();
-            gripperAction(true);
-        }
+
+        addTestObject();
+        // armGroupInterface->setMaxVelocityScalingFactor(0.01); TODO doesn't work for cartesian paths..
+        pickCucumber(cObj);
+
+        desiredWorldPositionMsg.data = 1.0;
+        positionControlPub.publish(desiredWorldPositionMsg);
+        moveToGoal();
+        // placeCucumber();
+        removeCucumber();
+        gripperAction(true);
     }
 }
 
@@ -223,17 +237,18 @@ void worldNode::defineCartesianPose() {
     graspPose.pose.orientation.w = q.w();
 
     // Place pose
-    placePose.header.frame_id = "world";
+    placePose.header.frame_id = "m1n6s200_link_base";
     placePose.header.stamp = ros::Time::now();
 
     // EULER ZYZ (-pi/4, pi/2, pi/2)
     // Dummy numbers for position since position is defined by cucumber
     // location
-    placePose.pose.position.x = -0.2;
+    placePose.pose.position.x = 0.2;
     placePose.pose.position.y = 0.4;
     placePose.pose.position.z = 0.1;
 
-    q = EulerZYZtoQuaternion(0, M_PI, M_PI/2);
+    // q = EulerZYZtoQuaternion(0, M_PI, M_PI/2);
+    q = EulerZYZtoQuaternion(0, -M_PI, M_PI/2);
     placePose.pose.orientation.x = q.x(); // TODO could make this one line
     placePose.pose.orientation.y = q.y();
     placePose.pose.orientation.z = q.z();

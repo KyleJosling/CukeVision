@@ -6,7 +6,12 @@
 // ----------------------------------------------------------
 
 #include <ros/ros.h>
+
 #include <std_msgs/Float32.h>
+#include <std_msgs/Int32.h>
+
+#include <tf/transform_broadcaster.h>
+
 
 class stepperControlNode {
 
@@ -34,5 +39,10 @@ class stepperControlNode {
         // Transform
         tf::TransformBroadcaster broadcaster;
         tf::Transform transform;
+
+        // X Position
+        double xPos;
+
+        void transformLoop();
 
 };

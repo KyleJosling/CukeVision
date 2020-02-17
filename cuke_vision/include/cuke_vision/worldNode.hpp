@@ -9,9 +9,11 @@
 #include <ros/console.h>
 
 #include <geometry_msgs/Pose.h>
+#include <std_msgs/Float32.h>
 
 #include <kinova_driver/kinova_ros_types.h>
 #include <kinova_msgs/SetFingersPositionAction.h>
+
 
 // MoveIt!
 #include <moveit_msgs/PlanningScene.h>
@@ -58,10 +60,12 @@ class worldNode {
         const std::string cukeTopic = "cuke3D";
         const std::string cObjTopic = "cObj";
         const std::string aObjTopic = "aObj";
+        const std::string positionControlTopic = "positionControl";
 
         // Publishers
         ros::Publisher cObjPub;
         ros::Publisher aObjPub;
+        ros::Publisher positionControlPub;
 
         // Subscribers
         ros::Subscriber cukeSub;
