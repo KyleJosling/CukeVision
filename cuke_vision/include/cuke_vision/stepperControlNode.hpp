@@ -40,8 +40,20 @@ class stepperControlNode {
         tf::TransformBroadcaster broadcaster;
         tf::Transform transform;
 
-        // X Position
-        double xPos;
+        // mm/step, calculated using a 1.36" sprocket diameter
+        // and 1600 microsteps/revolution
+        const double millimetresPerStep = 0.067826;
+        
+        // Acceleration in steps/s^2
+        const double stepperAcceleration = 10000;
+
+        // Speed in steps/s
+        const double stepperSpeed = 10000;
+
+        // X Positions (metres)
+        double Pos;
+        double desiredPos;
+        double oldPos;
 
         void transformLoop();
 
