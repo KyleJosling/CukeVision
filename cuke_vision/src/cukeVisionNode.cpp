@@ -7,7 +7,6 @@
 #include <ros/ros.h>
 #include <iostream>
 
-#include "cuke_vision/detectObject.hpp"
 #include "cuke_vision/boundingBoxMsg.h"
 
 class cukeVisionNode {
