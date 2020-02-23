@@ -1,14 +1,17 @@
 // ----------------------------------------------------------
-// NAME: Stereo Camera Node Header
+// NAME: Vision Node
 // DESCRIPTION:
 // 1. Receives depth and color images from Realsense camera
-// 2. Gets 3D points from pixel coordinates
+// 2. Detects and tracks cucumbers
+// 3. Forms 3D objects from detected cucumbers using pixel
+// deprojection
 // ----------------------------------------------------------
 
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/tracking/tracker.hpp>
 
 #include <ros/ros.h>
 #include <message_filters/synchronizer.h>
@@ -28,30 +31,32 @@
 #include <iostream>
 #include <stdio.h>
 
-class stereoCamNode {
+class visionNode {
 
     public:
         
         // Constructor
-        stereoCamNode();
+        visionNode();
 
         // Destructor
-        // ~stereoCamNode();
+        ~visionNode();
 
     private:
         
         // Node variables
         ros::NodeHandle nH;
         image_transport::ImageTransport it;
-
-        const std::string nodeName = "stereoCamNode";
-
-        // const std::string cameraInfoTopic = "/camera/aligned_depth_to_color/camera_info";
+        const std::string nodeName = "visionNode";
+        
+        // Topics
         const std::string cameraInfoTopic = "/camera/depth/camera_info";
         const std::string colorImageTopic = "/camera/color/image_raw";
-        // const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
         const std::string depthImageTopic = "/camera/depth/image_rect_raw";
         const std::string cucumberTopic = "cuke3D";
+
+        // Constants
+        const int IMAGE_WIDTH  = 640;
+        const int IMAGE_HEIGHT = 480;
 
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;
@@ -66,6 +71,10 @@ class stereoCamNode {
         
         // Cucumber detector object
         cukeDetector detector;
+
+        // Tracker objects for cucumbers
+        std::vector<cv::Ptr<cv::TrackerKCF>> cukeTrackers;
+        std::vector<cv::Rect2d> cukeRegions;
 
         // Current frame and bounding boxes around cukes
         cv::Mat colorFrame;
@@ -82,6 +91,7 @@ class stereoCamNode {
 
         void cameraSetup();
         void imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg);
+        bool checkIfTracked(cv::Rect bounding);
         void draw3DBounding(cv::Rect bounding);
         void compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]);
         void sendObjects();

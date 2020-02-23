@@ -1,14 +1,15 @@
 // ----------------------------------------------------------
-// NAME: Stereo Camera Node
+// NAME: Vision Node
 // DESCRIPTION:
 // 1. Receives depth and color images from Realsense camera
-// 2. Gets 3D points from pixel coordinates
+// 2. Detects and tracks cucumbers
+// 3. Forms 3D objects from detected cucumbers using pixel
+// deprojection
 // ----------------------------------------------------------
-#include "cuke_vision/stereoCamNode.hpp"
+#include "cuke_vision/visionNode.hpp"
 
-// TODO cleanup
 // Initializer list
-stereoCamNode::stereoCamNode():
+visionNode::visionNode():
     it(nH),
     colorImageSub(it, colorImageTopic, 1),
     depthImageSub(it, depthImageTopic, 1),
@@ -21,11 +22,21 @@ stereoCamNode::stereoCamNode():
     cameraSetup();
 
     // Bind subscriber callbacks using boost
-    sync.registerCallback(boost::bind( &stereoCamNode::imageCallback, this, _1, _2));
+    sync.registerCallback(boost::bind( &visionNode::imageCallback, this, _1, _2));
+}
+
+// Destructor
+visionNode::~visionNode() {
+
+    // Destroy tracker objects
+    
+    for (int i = 0; i < cukeTrackers.size(); i++) {
+        (cukeTrackers[i]).release();
+    }
 }
 
 // Get intrinsic/extrinsic camera parameters
-void stereoCamNode::cameraSetup() {
+void visionNode::cameraSetup() {
 
     // Load the camera parameters
     sensor_msgs::CameraInfo cameraInfo;
@@ -40,7 +51,7 @@ void stereoCamNode::cameraSetup() {
 }
 
 // Image callback for depth and stereo images
-void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg) {
+void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg) {
 
     try {
 
@@ -49,20 +60,41 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
         // Copy the frame
         colorFrame = cv_bridge::toCvCopy(colorImageMsg, "bgr8")->image;
         depthFrame = cv_bridge::toCvCopy(depthImageMsg, sensor_msgs::image_encodings::TYPE_16UC1)->image;
+        
+        // Update tracker objects
+        for (int i = 0; i < cukeTrackers.size(); i++) {
 
+            (cukeTrackers[i])->update(colorFrame, cukeRegions[i]); 
+
+            #ifdef GUI
+            cv::rectangle(colorFrame, (cukeRegions[i]).tl(), (cukeRegions[i]).br(), cv::Scalar(0,0,255));
+            #endif
+
+            // If tracker has gone out of frame, release it
+            if ((cukeRegions[i].x) <= 0 || (cukeRegions[i].x) >= IMAGE_WIDTH) {
+                (cukeTrackers[i]).release();
+                cukeTrackers.erase(cukeTrackers.begin()+i);
+                cukeRegions.erase(cukeRegions.begin()+i);
+            }
+        }
+        
         // Detect cucumbers
         boxes.clear();
-        
         detector.detectCukes(colorFrame, boxes);
-        ROS_INFO("Meeperson");
-        // TODO should be boxes.size();
-        for (int i = 0; i < 1; i++) {
-            if (boxes.size() > 0)
-                draw3DBounding(boxes[i]);
-        }
 
-        // Publish the message
-        // sendObjects();
+        for (int i = 0; i < boxes.size(); i++) {
+            
+            bool tracked = checkIfTracked(boxes[i]);
+            
+            // If new cucumber, create 3D object
+            if (!tracked) {
+                draw3DBounding(boxes[i]);
+                cukeTrackers.push_back(cv::TrackerKCF::create());
+                (cukeTrackers.back())->init(colorFrame, boxes[i]);
+                cukeRegions.push_back(boxes[i]);
+            }
+            
+        }
 
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("Image encoding error %s", e.what());
@@ -70,20 +102,35 @@ void stereoCamNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMs
 
 }
 
-// Draw 3D bounding box
-void stereoCamNode::draw3DBounding(cv::Rect bounding) {
+// Checks if a cucumber is being tracked
+bool visionNode::checkIfTracked(cv::Rect bounding) {
 
-    // std::cout << "Pixel at " << boxes[0].x + (boxes[0].width)/2 << " , " << boxes[0].y + (boxes[0].height)/2 << std::endl;
+    // Cycle through the tracker objects
+    for (int i = 0; i < cukeRegions.size(); i++) {
+        int curXMin = (cukeRegions[i]).x; 
+        int curXMax = (cukeRegions[i]).x + (cukeRegions[i]).width; 
+        int curYMin = (cukeRegions[i]).y; 
+        int curYMax = (cukeRegions[i]).y + (cukeRegions[i]).height;
+        int centreX = bounding.x + bounding.width/2;
+        int centreY = bounding.y + bounding.height/2;
+
+        // Compare centre of detected to tracked ROI
+        if (centreX > curXMin && centreX < curXMax && centreY > curYMin && centreY < curYMax)
+            return true;
+    }
+    return false;
+}
+
+// Draw 3D bounding box
+void visionNode::draw3DBounding(cv::Rect bounding) {
+
     // Get depth of front of cucumber
     float pixel_x    = bounding.x;
     float pixel_y    = bounding.y;
     float box_width  = bounding.width;
     float box_height = bounding.height;
-    std::cout << "x, y " << static_cast<int>(pixel_x + box_width/2) << " " << static_cast<int>(pixel_y + box_height/2) << std::endl;
 
-    // TODO should this be float
     unsigned short frontDepth = depthFrame.at<unsigned short>(static_cast<int>(pixel_x + box_width/2), static_cast<int>(pixel_y + box_height/2));
-    std::cout << "front depth is : " << frontDepth << std::endl;
 
     // Points on plane on the front of the cucumber
     float point[3];
@@ -119,7 +166,6 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     pBR.y = point[1];
     pBR.z = point[2];
     
-    // // TODO can seperate this into one function
     cObj.id = "cucumber";
     cObj.header.frame_id = "camera_link";
 
@@ -127,8 +173,8 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     cObj.primitives.resize(1);
     cObj.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
     cObj.primitives[0].dimensions.resize(geometric_shapes::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::CYLINDER>::value);
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.33; // TODO these are hardcoded bc of bug in last approach, FIX
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.02;
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = pBL.y - pTL.y;
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] =(pTR.x - pTL.x)/2; 
 
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
@@ -136,16 +182,13 @@ void stereoCamNode::draw3DBounding(cv::Rect bounding) {
     cObj.primitive_poses[0].position.y = -pM.x;
     cObj.primitive_poses[0].position.z = -pM.y;
 
-    std::cout << "X Y Z of cucumber is : " << pM.x << " " << pM.y << " " << pM.z << " " << std::endl;
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cucumberPub.publish(cObj);
 
 }
 
 // Gets 3D coordinates of point
-void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]) {
-
-    // float depth = depthFrame.at<unsigned short>(static_cast<int>(pixel_x), static_cast<int>(pixel_y));
+void visionNode::compute3DPoint(const float pixel_x, const float pixel_y, float depth, float (&point)[3]) {
     depth = depth*0.001f;
     float x = (pixel_x - camInfoPtr->K.at(2)) / camInfoPtr->K.at(0);
     float y = (pixel_y - camInfoPtr->K.at(5)) / camInfoPtr->K.at(4);
@@ -153,17 +196,14 @@ void stereoCamNode::compute3DPoint(const float pixel_x, const float pixel_y, flo
     point[0] = depth*x;
     point[1] = depth*y;
     point[2] = depth;
-    // std::cout << point[0] << std::endl;
-    // std::cout << point[1] << std::endl;
-    // std::cout << point[2] << std::endl;
 }
 
 int main(int argc, char** argv) {
 
-    std::string nodeName = "stereoCamNode"; // TODO should this happen in object constructor ..
+    std::string nodeName = "visionNode";
     ros::init(argc, argv, nodeName);
 
-    stereoCamNode sC;
+    visionNode sC;
 
     ros::spin();
 
