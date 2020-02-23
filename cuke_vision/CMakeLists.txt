@@ -44,7 +44,6 @@ MESSAGE(WARNING "install path ${moveit_core_INSTALL_PATH}")
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  boundingBoxMsg.msg
 )
 
 # Generate added messages and services with any dependencies listed here
@@ -131,15 +130,6 @@ add_executable(visionNode src/visionNode.cpp src/cukeDetector.cpp)
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
 
-add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
- target_link_libraries(boundingBoxNode
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-   ${realsense2_LIBRARY}
- )
-add_definitions(-std=c++11 -g -O3)
-add_definitions(-DGUI)
-
 add_executable(worldNode src/worldNode.cpp)
  target_link_libraries(worldNode
    ${catkin_LIBRARIES}
@@ -153,6 +143,13 @@ add_definitions(-DGUI)
 
 add_executable(stepperControlNode src/stepperControlNode.cpp)
  target_link_libraries(stepperControlNode
+   ${catkin_LIBRARIES}
+ )
+add_definitions(-std=c++11 -g -O3)
+add_definitions(-DGUI)
+
+add_executable(cutterControlNode src/cutterControlNode.cpp)
+ target_link_libraries(cutterControlNode
    ${catkin_LIBRARIES}
  )
 add_definitions(-std=c++11 -g -O3)
