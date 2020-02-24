@@ -57,7 +57,7 @@ class worldNode {
         const std::string nodeName = "worldNode";
 
         // Topics
-        const std::string cukeTopic = "cuke3D";
+        const std::string cukeTopic = "cuke3DSorted";
         const std::string cObjTopic = "cObj";
         const std::string aObjTopic = "aObj";
         const std::string positionControlTopic = "positionControl";

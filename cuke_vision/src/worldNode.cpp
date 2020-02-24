@@ -99,16 +99,11 @@ worldNode::worldNode() {
         positionControlPub.publish(desiredWorldPositionMsg);
         ros::Duration(1.0).sleep();
         
-        ROS_INFO("New cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
+        ROS_INFO("Picking cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
 
         addTestObject();
-        // armGroupInterface->setMaxVelocityScalingFactor(0.01); TODO doesn't work for cartesian paths..
         pickCucumber(cObj);
-
-        desiredWorldPositionMsg.data = 1.0;
-        positionControlPub.publish(desiredWorldPositionMsg);
         moveToGoal();
-        // placeCucumber();
         removeCucumber();
         gripperAction(true);
     }
