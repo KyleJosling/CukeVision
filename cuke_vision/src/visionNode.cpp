@@ -29,7 +29,6 @@ visionNode::visionNode():
 visionNode::~visionNode() {
 
     // Destroy tracker objects
-    
     for (int i = 0; i < cukeTrackers.size(); i++) {
         (cukeTrackers[i]).release();
     }
@@ -45,13 +44,20 @@ void visionNode::cameraSetup() {
     if (camInfoPtr != NULL) {
         cameraInfo = *camInfoPtr;
     } else {
-        ROS_ERROR("No camera parameters received. Shutting down CukeVisionNode.");
+        ROS_ERROR("No camera parameters received. Shutting down vision node.");
         throw;
     }
 }
 
 // Image callback for depth and stereo images
 void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, const sensor_msgs::ImageConstPtr &depthImageMsg) {
+    
+    // TESTING roi
+    cv::Rect roi;
+    roi.x = 220; 
+    roi.y = 0; 
+    roi.width = 200; 
+    roi.height = 480; 
 
     try {
 
@@ -60,6 +66,7 @@ void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, 
         // Copy the frame
         colorFrame = cv_bridge::toCvCopy(colorImageMsg, "bgr8")->image;
         depthFrame = cv_bridge::toCvCopy(depthImageMsg, sensor_msgs::image_encodings::TYPE_16UC1)->image;
+        colorFrame = colorFrame(roi);
         
         // Update tracker objects
         for (int i = 0; i < cukeTrackers.size(); i++) {
@@ -88,6 +95,7 @@ void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, 
             
             // If new cucumber, create 3D object
             if (!tracked) {
+                ROS_INFO("A new cucumber has appeared. Creating new tracking object.");
                 draw3DBounding(boxes[i]);
                 cukeTrackers.push_back(cv::TrackerKCF::create());
                 (cukeTrackers.back())->init(colorFrame, boxes[i]);

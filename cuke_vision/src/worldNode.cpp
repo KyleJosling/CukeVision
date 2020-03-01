@@ -91,13 +91,13 @@ worldNode::~worldNode() {
 }
 
 // Test function for loading in cucumbers from yaml file
-void worldNode::loadCucumbersFromFile() {
-    testCucumbers.resize(3); 
-    nH.getParam("cukeX", testCucumbers[0]);
-    nH.getParam("cukeY", testCucumbers[1]);
-    nH.getParam("cukeZ", testCucumbers[2]);
-
-}
+// void worldNode::loadCucumbersFromFile() {
+//     testCucumbers.resize(3); 
+//     nH.getParam("cukeX", testCucumbers[0]);
+//     nH.getParam("cukeY", testCucumbers[1]);
+//     nH.getParam("cukeZ", testCucumbers[2]);
+// 
+// }
 
 void worldNode::addCucumber() {
 
@@ -239,9 +239,9 @@ void worldNode::moveToGoal() {
 void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     
 
-    ex  = objectMsg.primitives[0].pose.x; 
-    why = objectMsg.primitives[0].pose.y;; 
-    zed = objectMsg.primitives[0].pose.z;; 
+    // ex  = objectMsg.primitives[0].pose.x; 
+    // why = objectMsg.primitives[0].pose.y;; 
+    // zed = objectMsg.primitives[0].pose.z;; 
 
     ROS_INFO("Cuke has been received with height: %f and radius: %f",
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT],

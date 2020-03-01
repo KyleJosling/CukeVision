@@ -46,7 +46,7 @@ class cukeDetector {
         int inpWidth = 416;
         int inpHeight = 416;
 
-        float confThreshold = 0.5; // Confidence threshold
+        float confThreshold = 0.2; // Confidence threshold
         float nmsThreshold = 0.4;  // Non-maximum suppression threshold
 
         cv::Mat frame;

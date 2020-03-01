@@ -21,7 +21,7 @@ cukeDetector::cukeDetector() {
     net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
 
     #ifdef GUI
-    namedWindow(kWinName, cv::WINDOW_NORMAL);
+    namedWindow(kWinName, cv::WINDOW_AUTOSIZE);
     #endif
 }
 
@@ -58,6 +58,7 @@ void cukeDetector::detectCukes( cv::Mat &frame, std::vector<cv::Rect> &boxes) {
     double freq = cv::getTickFrequency() / 1000;
     double t = net.getPerfProfile(layersTimes) / freq;
     std::string label = cv::format("Inference time for a frame : %.2f ms", t);
+    ROS_INFO("Inference time : %.2f", t);
 
     #ifdef GUI
     // TODO fix darwing later
