@@ -44,7 +44,7 @@ class stepperControlNode {
         const double millimetresPerStep = 0.067826;
 
         // Acceleration in steps/s^2
-        const double stepperAcceleration = 10000;
+        const double stepperAcceleration = 6000;
 
         // Speed in steps/s
         const double maxStepperSpeed = 10000;

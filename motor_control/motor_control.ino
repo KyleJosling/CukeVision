@@ -37,15 +37,15 @@ void stepperMessageCallback( const std_msgs::Int32 &msg) {
 }
 
 // Cutter callback function
-void cutterMessageCallback( const std_msgs::bool &msg) {
+void cutterMessageCallback( const std_msgs::Bool &msg) {
 
     for (servoPos = 0; servoPos <= 180; servoPos += 1) { // goes from 0 degrees to 180 degrees
         // in steps of 1 degree
-        myservo.write(servoPos);        // tell servo to go to position in variable 'servoPos'
+        cutterServo.write(servoPos);        // tell servo to go to position in variable 'servoPos'
         delay(5);                       // waits 5ms for the servo to reach the position
     }
     for (servoPos = 180; servoPos >= 0; servoPos -= 1) { // goes from 180 degrees to 0 degrees
-        myservo.write(servoPos);        // tell servo to go to position in variable 'servoPos'
+        cutterServo.write(servoPos);        // tell servo to go to position in variable 'servoPos'
         delay(5);                       // waits 5ms for the servo to reach the position
     } 
 }
@@ -69,7 +69,7 @@ void setup() {
   nh.subscribe(cutterSub);
     
   // Attach servo
-  servo.atach(servoPin);
+  cutterServo.attach(servoPin);
 }
 
 void loop() {
