@@ -57,7 +57,7 @@ class worldNode {
         const std::string nodeName = "worldNode";
 
         // Topics
-        const std::string cukeTopic = "cuke3D";
+        const std::string cukeTopic = "cuke3DSorted";
         const std::string cObjTopic = "cObj";
         const std::string aObjTopic = "aObj";
         const std::string positionControlTopic = "positionControl";
@@ -107,6 +107,7 @@ class worldNode {
         // Cucumbers
         std::stack<moveit_msgs::CollisionObject> cucumbers;
         
+        double ex, why, zed;
 
         void moveToGoal();
         void defineGripperPosture(bool open, trajectory_msgs::JointTrajectory &posture);
@@ -118,12 +119,10 @@ class worldNode {
         void loadCucumbersFromFile();
 
         // Collision functions
+        void addCucumber();
         void pickCucumber(const moveit_msgs::CollisionObject &objectMsg);
-        void placeCucumber();
-        // void addTable();
         void removeCucumber();
         void defineCartesianPose();
-        void addTestObject();
 
 };
 

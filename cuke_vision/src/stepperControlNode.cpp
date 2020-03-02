@@ -53,73 +53,67 @@ void stepperControlNode::messageCallback(const std_msgs::Float32 &positionMsg) {
 
     oldPos = Pos;
     desiredPos = positionMsg.data;
-    desiredPos = (desiredPos - 0.2 < 0) ? desiredPos = 0 : desiredPos = desiredPos - 0.2; // Robot needs an offset to plan a path
+    // desiredPos = (desiredPos - 0.2 < 0) ? desiredPos = 0 : desiredPos = desiredPos - 0.2; // Robot needs an offset to plan a path
 
     // Calculate relative stepper position
+    int stepPosition = (desiredPos*1000)/(millimetresPerStep);
     int steps = ((desiredPos-oldPos)*1000)/(millimetresPerStep);
-    double distToMaxSpeed = maxStepperSpeed*maxStepperSpeed/(2*stepperAcceleration); //steps
-    double timeToMaxSpeed = 2*distToMaxSpeed/maxStepperSpeed;
+    double distToMaxSpeed = (maxStepperSpeed*maxStepperSpeed)/(2*stepperAcceleration); //steps
+    double timeToMaxSpeed = sqrt(2*distToMaxSpeed/stepperAcceleration);
 
 
     ROS_INFO("STEPPER CONTROL : Position received with value %f", desiredPos);
+    ROS_INFO("STEPPER CONTROL : Current position is %f", oldPos);
     ROS_INFO("STEPPER CONTROL : Steps to travel %d", steps);
 
 
     // Publish the steps and move the motor
     std_msgs::Int32 msg;
-    msg.data = -steps;
+    msg.data = -stepPosition;
     stepperPub.publish(msg);
 
     ros::Time startTime = ros::Time::now();
     ros::Time currentTime = startTime;
     double deltaTime = (currentTime - startTime).toSec();
-
-    //accel until max speed, decel at desiredPos - distToMaxSpeed
-    if (abs(steps) > distToMaxSpeed) {
-
-        // Calculate the time to execute the steps
-        trajectoryTime = (2*timeToMaxSpeed) + ((steps-(2*distToMaxSpeed))/maxStepperSpeed);
-        double maxDecelTime = trajectoryTime - timeToMaxSpeed;
-
-        while (deltaTime <= trajectoryTime) {
-
-            currentTime = ros::Time::now();
-            deltaTime = (currentTime - startTime).toSec();
-
-
-            if (deltaTime < timeToMaxSpeed) {
-                Pos = oldPos + stepperAcceleration*deltaTime*deltaTime/2 *(millimetresPerStep/1000);
-                Pos1 = Pos;
-            } else if (timeToMaxSpeed <= deltaTime <= maxDecelTime ) {
-                Pos = Pos1 + ((deltaTime-timeToMaxSpeed)*maxStepperSpeed) *(millimetresPerStep/1000);
-                Pos2 = Pos;
-            } else {
-                Pos = Pos2 + stepperAcceleration*pow((deltaTime-maxDecelTime),2)/2 *(millimetresPerStep/1000);
-            }
-
-            // Publish new position
-            transform.setOrigin(tf::Vector3(-Pos,0,0));
-            broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "root", "world"));
-        }
+    double traj1Time;
 
     // If the max speed wont be reached: accel=decel, so accelerate until steps/2
-    } else {
+    ROS_INFO("MAX SPEED WILL NOT BE REACHED");
 
-        // Calculate the time to execute the steps
-        trajectoryTime = sqrt(4*steps/stepperAcceleration);
+    // Calculate the time to execute the steps
+    trajectoryTime = 2*sqrt(abs(steps)/stepperAcceleration);
+    double speedReached = sqrt(2*stepperAcceleration*steps/2);
+    bool flaggy = false;
+    ROS_INFO("Trajectory time : %f, speed reached : %f", trajectoryTime, speedReached);
+        
+    // TODO !!!!!!!!!!!!!!!!!!!!! cleanup this gross code make it better
+    // While the trajectory is not complete
+    while (deltaTime <= trajectoryTime) {
+        
+        // Get current time and calculate time since start of trajectory
+        currentTime = ros::Time::now();
+        deltaTime = (currentTime - startTime).toSec();
+        
+        // Acceleration TODO fix backwards direction
+        if (deltaTime < trajectoryTime/2) {
+            Pos = oldPos + (stepperAcceleration*deltaTime*deltaTime/2)*(millimetresPerStep/1000);
+            Pos1 = Pos;
+        // Deceleration
+        } else {
+            
+            Pos = Pos1 + speedReached*(millimetresPerStep/1000)*(deltaTime-(trajectoryTime/2)) + (-stepperAcceleration*(deltaTime-(trajectoryTime/2))*(deltaTime-(trajectoryTime/2))/2)*(millimetresPerStep/1000);
+            if(flaggy) {
 
-        while (deltaTime <= trajectoryTime) {
-
-            currentTime = ros::Time::now();
-            deltaTime = (currentTime - startTime).toSec();
-            Pos = oldPos + stepperAcceleration*deltaTime*deltaTime/2 *(millimetresPerStep/1000);
-
-            // Publish new position
-            transform.setOrigin(tf::Vector3(-Pos,0,0));
-            broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "root", "world"));
-
+                ROS_INFO("Speed reached : %f ", speedReached*(millimetresPerStep/1000)*(deltaTime-(trajectoryTime/2)));
+            }
         }
+
+        // Publish new position
+        transform.setOrigin(tf::Vector3(-Pos,0,0));
+        broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "root", "world"));
+
     }
+    ROS_INFO("POS 1 : %f ", Pos1);
 
     // Calculate error
     double error = Pos - desiredPos;

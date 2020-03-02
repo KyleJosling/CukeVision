@@ -5,13 +5,6 @@
 // ----------------------------------------------------------
 #include "cuke_vision/worldNode.hpp"
 
-const double FINGER_MAX = 6400; // TODO is this still required?
-std::vector<std::vector<double>> testCucumbers;
-double ex  = 0.35;
-double why = -0.40;
-double zed = 0.20;
-
-// TODO add this to some utility file
 tf::Quaternion EulerZYZtoQuaternion(double tz1, double ty, double tz2)
 {
     tf::Quaternion q;
@@ -82,36 +75,7 @@ worldNode::worldNode() {
     // We can also print the name of the end-effector link for this group.
     ROS_INFO("Reference frame: %s", armGroupInterface->getEndEffectorLink().c_str());
 
-    // TODO test functions
-    // addRobotFrame();
     defineCartesianPose();
-    loadCucumbersFromFile();
-
-    // Cycle through cucumbers in params loaded
-    for (int i = 0; i < (testCucumbers[0]).size(); i++) {
-        ex  = testCucumbers[0][i]; 
-        why = testCucumbers[1][i]; 
-        zed = testCucumbers[2][i]; 
-
-        // Move to x position TODO test 
-        std_msgs::Float32 desiredWorldPositionMsg;
-        desiredWorldPositionMsg.data = ex;
-        positionControlPub.publish(desiredWorldPositionMsg);
-        ros::Duration(1.0).sleep();
-        
-        ROS_INFO("New cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
-
-        addTestObject();
-        // armGroupInterface->setMaxVelocityScalingFactor(0.01); TODO doesn't work for cartesian paths..
-        pickCucumber(cObj);
-
-        desiredWorldPositionMsg.data = 1.0;
-        positionControlPub.publish(desiredWorldPositionMsg);
-        moveToGoal();
-        // placeCucumber();
-        removeCucumber();
-        gripperAction(true);
-    }
 }
 
 // World destructor
@@ -127,15 +91,15 @@ worldNode::~worldNode() {
 }
 
 // Test function for loading in cucumbers from yaml file
-void worldNode::loadCucumbersFromFile() {
-    testCucumbers.resize(3); 
-    nH.getParam("cukeX", testCucumbers[0]);
-    nH.getParam("cukeY", testCucumbers[1]);
-    nH.getParam("cukeZ", testCucumbers[2]);
+// void worldNode::loadCucumbersFromFile() {
+//     testCucumbers.resize(3); 
+//     nH.getParam("cukeX", testCucumbers[0]);
+//     nH.getParam("cukeY", testCucumbers[1]);
+//     nH.getParam("cukeZ", testCucumbers[2]);
+// 
+// }
 
-}
-
-void worldNode::addTestObject() {
+void worldNode::addCucumber() {
 
      ROS_INFO("Adding cuke");
 
@@ -161,13 +125,12 @@ void worldNode::addTestObject() {
     cObjPub.publish(cObj);
  
     planningSceneInterface->applyCollisionObject(cObj);
+
+    std_msgs::Float32 desiredWorldPositionMsg;
+    desiredWorldPositionMsg.data = ex;
+    positionControlPub.publish(desiredWorldPositionMsg);
+    ros::Duration(1.0).sleep();
     
-    // See whats up
-    // std::vector<std::string> aObjs = planningSceneInterface->getKnownObjectNames();
-    // std::cout << aObjs.size() << std::endl;
-    // for (int i = 0; i < aObjs.size(); i++) {
-    //     std::cout << aObjs[i] << std::endl;
-    // }
 }
 
 // Prints the current pose of the robot
@@ -255,26 +218,19 @@ void worldNode::defineGripperPosture(bool open, trajectory_msgs::JointTrajectory
 
 }
 
-// TODO test function
+// Move to drop off
 void worldNode::moveToGoal() {
     
-    // armGroupInterface->setGoalPositionTolerance(0.03);
-    // armGroupInterface->setGoalOrientationTolerance(0.26);
-
-
-    // // TODO make member variable?
     moveit::planning_interface::MoveGroupInterface::Plan plan;
     bool success = false;
 
     // Set the target pose
-    // armGroupInterface->setApproximateJointValueTarget(placePose, "m1n6s200_link_6");
     armGroupInterface->setPoseTarget(placePose);
 
     success = (armGroupInterface->plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
     ROS_INFO("planning successful ? : %d ", success);
 
-    // armGroupInterface->execute(plan);
     armGroupInterface->move();
 
 }
@@ -282,14 +238,21 @@ void worldNode::moveToGoal() {
 // Receives a new cucumber
 void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     
+
+    // ex  = objectMsg.primitives[0].pose.x; 
+    // why = objectMsg.primitives[0].pose.y;; 
+    // zed = objectMsg.primitives[0].pose.z;; 
+
     ROS_INFO("Cuke has been received with height: %f and radius: %f",
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT],
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS]);
+    ROS_INFO("Picking cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
 
-    cObjPub.publish(objectMsg);
-
-    planningSceneInterface->applyCollisionObject(objectMsg);
-    ROS_INFO("Cuke has been applied.");
+    addCucumber();
+    pickCucumber(cObj);
+    moveToGoal();
+    removeCucumber();
+    gripperAction(true);
 }
 
 // Removes a collision object from the world
@@ -348,17 +311,7 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     defineGripperPosture( true,  grasps[0].pre_grasp_posture);
     defineGripperPosture( false, grasps[0].grasp_posture);
     
-    // TODO test
-    // armGroupInterface->setGoalPositionTolerance(0.03);
-    // armGroupInterface->setGoalOrientationTolerance(0.26);
     armGroupInterface->pick("target_cylinder", grasps);
-    // armGroupInterface->setMaxVelocityScalingFactor(1.0);
-}
-
-// Places the current attached collision object in the cucumber place area
-void worldNode::placeCucumber() {
-    
-
 }
 
 int main (int argc, char** argv ) {
