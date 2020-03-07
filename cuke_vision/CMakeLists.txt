@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cuke_vision)
 
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
@@ -8,6 +9,7 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  rospy
   cv_bridge
   image_transport
   roscpp
@@ -19,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning
   moveit_ros_planning_interface
 # NOTE : cv_bridge is causing linker issues. Refer here :https://answers.ros.org/question/312235/error-linking-to-opencv-dnn-library/ 
+# anddd this one https://answers.ros.org/question/320609/how-to-linked-ros-with-opencv-345-dnn-module-error-undefined-reference-cvdnnexperimental_dnn_v2netnet/ 
 )
 
 find_package(Boost REQUIRED COMPONENTS thread)
@@ -41,11 +44,6 @@ MESSAGE(WARNING "install path ${moveit_core_INSTALL_PATH}")
 ################################################
 
 
-# Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  boundingBoxMsg.msg
-)
 
 # Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -123,19 +121,10 @@ add_executable(cukeVisionNode src/cukeVisionNode.cpp)
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
 
-add_executable(stereoCamNode src/stereoCamNode.cpp src/cukeDetector.cpp)
- target_link_libraries(stereoCamNode
+add_executable(visionNode src/visionNode.cpp src/cukeDetector.cpp)
+ target_link_libraries(visionNode
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
- )
-add_definitions(-std=c++11 -g -O3)
-add_definitions(-DGUI)
-
-add_executable(boundingBoxNode src/boundingBoxNode.cpp src/cukeDetector.cpp)
- target_link_libraries(boundingBoxNode
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-   ${realsense2_LIBRARY}
  )
 add_definitions(-std=c++11 -g -O3)
 add_definitions(-DGUI)
@@ -153,6 +142,13 @@ add_definitions(-DGUI)
 
 add_executable(stepperControlNode src/stepperControlNode.cpp)
  target_link_libraries(stepperControlNode
+   ${catkin_LIBRARIES}
+ )
+add_definitions(-std=c++11 -g -O3)
+add_definitions(-DGUI)
+
+add_executable(cutterControlNode src/cutterControlNode.cpp)
+ target_link_libraries(cutterControlNode
    ${catkin_LIBRARIES}
  )
 add_definitions(-std=c++11 -g -O3)

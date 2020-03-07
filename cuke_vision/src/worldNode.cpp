@@ -168,13 +168,13 @@ void worldNode::addPermanentObjects() {
 }
 
 // Test function for loading in cucumbers from yaml file
-void worldNode::loadCucumbersFromFile() {
-    testCucumbers.resize(3); 
-    nH.getParam("cukeX", testCucumbers[0]);
-    nH.getParam("cukeY", testCucumbers[1]);
-    nH.getParam("cukeZ", testCucumbers[2]);
-
-}
+// void worldNode::loadCucumbersFromFile() {
+//     testCucumbers.resize(3); 
+//     nH.getParam("cukeX", testCucumbers[0]);
+//     nH.getParam("cukeY", testCucumbers[1]);
+//     nH.getParam("cukeZ", testCucumbers[2]);
+// 
+// }
 
 void worldNode::addCucumber() {
 
