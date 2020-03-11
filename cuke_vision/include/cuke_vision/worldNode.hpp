@@ -57,7 +57,7 @@ class worldNode {
         const std::string nodeName = "worldNode";
 
         // Topics
-        const std::string cukeTopic = "cuke3DSorted";
+        const std::string cukeTopic = "cuke3D";
         const std::string cObjTopic = "cObj";
         const std::string aObjTopic = "aObj";
         const std::string positionControlTopic = "positionControl";
@@ -111,6 +111,10 @@ class worldNode {
         std::vector<std::vector<double>> testCucumbers;
         double ex, why, zed;
 
+        // Transform listener
+        tf::TransformListener listener;
+
+        void initializeTransformListener();
         void moveToGoal();
         void defineGripperPosture(bool open, trajectory_msgs::JointTrajectory &posture);
         void addPermanentObjects();

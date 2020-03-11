@@ -36,7 +36,6 @@ worldNode::worldNode() {
     // stepper controller publisher
     positionControlPub = nH.advertise<std_msgs::Float32>(positionControlTopic, 10);
 
-
     // Get robot type, check if robot is connected
     nH.param<std::string>("/robot_type", robotType, "m1n6s200");
     nH.param<bool>("/robot_connected", robotConnected, true);
@@ -69,12 +68,14 @@ worldNode::worldNode() {
     }
 
     ROS_INFO("WORLD NODE: Finger action server is up!");
-    
+
     // We can print the name of the reference frame for this robot.
     ROS_INFO("Reference frame: %s", armGroupInterface->getPlanningFrame().c_str());
     // We can also print the name of the end-effector link for this group.
     ROS_INFO("Reference frame: %s", armGroupInterface->getEndEffectorLink().c_str());
 
+    
+    initializeTransformListener();
     defineCartesianPose();
     addPermanentObjects();
     loadCucumbersFromFile();
@@ -110,6 +111,13 @@ worldNode::~worldNode() {
     delete armGroupInterface;
     delete gripperGroupInterface;
     delete fingerClient;
+
+}
+
+// Initialize tf listener
+void worldNode::initializeTransformListener() {
+    
+    listener.waitForTransform("world", "/camera_aligned_depth_to_color_frame", ros::Time::now(), ros::Duration(5.0), ros::Duration(2)); 
 
 }
 
@@ -168,17 +176,27 @@ void worldNode::addPermanentObjects() {
 }
 
 // Test function for loading in cucumbers from yaml file
-// void worldNode::loadCucumbersFromFile() {
-//     testCucumbers.resize(3); 
-//     nH.getParam("cukeX", testCucumbers[0]);
-//     nH.getParam("cukeY", testCucumbers[1]);
-//     nH.getParam("cukeZ", testCucumbers[2]);
-// 
-// }
+void worldNode::loadCucumbersFromFile() {
+    testCucumbers.resize(3); 
+    nH.getParam("cukeX", testCucumbers[0]);
+    nH.getParam("cukeY", testCucumbers[1]);
+    nH.getParam("cukeZ", testCucumbers[2]);
+
+}
 
 void worldNode::addCucumber() {
 
-     ROS_INFO("Adding cuke");
+    ROS_INFO("Adding cuke");
+
+    tf::Stamped<tf::Point> point;
+    tf::Stamped<tf::Point> point2;
+    point.setX(ex);
+    point.setY(why);
+    point.setZ(zed);
+    point.frame_id_ = "camera_aligned_depth_to_color_frame";
+
+    listener.transformPoint("world", point, point2);
+    ROS_INFO("Transform result : %f, %f, %f ", point2.getX(), point2.getY(), point2.getZ());
 
     //add target_cylinder
     cObj.id = "target_cylinder";
@@ -191,23 +209,22 @@ void worldNode::addCucumber() {
     cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.25;
     cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.015;
 
-    
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
-    cObj.primitive_poses[0].position.x = ex;
-    cObj.primitive_poses[0].position.y = why;
-    cObj.primitive_poses[0].position.z = zed;
+    cObj.primitive_poses[0].position.x = point2.getX();
+    cObj.primitive_poses[0].position.y = point2.getY();
+    cObj.primitive_poses[0].position.z = point2.getZ();
 
     cObj.operation = moveit_msgs::CollisionObject::ADD;
     cObjPub.publish(cObj);
  
     planningSceneInterface->applyCollisionObject(cObj);
 
+    ros::Duration(2.0).sleep();
+
     std_msgs::Float32 desiredWorldPositionMsg;
-    desiredWorldPositionMsg.data = ex;
+    desiredWorldPositionMsg.data = point2.getX();
     positionControlPub.publish(desiredWorldPositionMsg);
-    ros::Duration(1.0).sleep();
-    
 }
 
 // Prints the current pose of the robot
@@ -316,9 +333,9 @@ void worldNode::moveToGoal() {
 void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     
 
-    // ex  = objectMsg.primitives[0].pose.x; 
-    // why = objectMsg.primitives[0].pose.y;; 
-    // zed = objectMsg.primitives[0].pose.z;; 
+    ex  = objectMsg.primitive_poses[0].position.x; 
+    why = objectMsg.primitive_poses[0].position.y;; 
+    zed = objectMsg.primitive_poses[0].position.z;; 
 
     ROS_INFO("Cuke has been received with height: %f and radius: %f",
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT],
@@ -326,6 +343,7 @@ void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     ROS_INFO("Picking cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
 
     addCucumber();
+    ros::Duration(2.0).sleep();
     pickCucumber(cObj);
     moveToGoal();
     removeCucumber();
@@ -356,17 +374,16 @@ void worldNode::removeCucumber() {
 // Pick cucumber
 void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     
-    // Pop cucumber from stack
-    // cObj = cucumbers.pop();
+    ROS_INFO("Picking cucumber.");
 
     std::vector<moveit_msgs::Grasp> grasps;
-    tf::Quaternion q; // TODO consider switching to tf2 
+    tf::Quaternion q;
     
     // Only one grasp for now
     grasps.resize(1);
     
     // Grasp pose (same as already set really)
-    grasps[0].grasp_pose.header.frame_id = "world";
+    grasps[0].grasp_pose.header.frame_id = "root";
     q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
     tf::quaternionTFToMsg(q, grasps[0].grasp_pose.pose.orientation);
     grasps[0].grasp_pose.pose.position.x = ex;
@@ -387,8 +404,11 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     // Open and close gripper when the time strikes 12 and the planets are aligned
     defineGripperPosture( true,  grasps[0].pre_grasp_posture);
     defineGripperPosture( false, grasps[0].grasp_posture);
+    ROS_INFO("Defined gripper postures.");
     
     armGroupInterface->pick("target_cylinder", grasps);
+
+    ROS_INFO("Finished picking");
 }
 
 int main (int argc, char** argv ) {

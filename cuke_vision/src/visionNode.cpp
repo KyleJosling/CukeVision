@@ -63,10 +63,12 @@ void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, 
 
         ROS_INFO("Frame received");
 
+        int endian =  depthImageMsg->is_bigendian;
+        std::cout << endian << std::endl;
+
         // Copy the frame
         colorFrame = cv_bridge::toCvCopy(colorImageMsg, "bgr8")->image;
         depthFrame = cv_bridge::toCvCopy(depthImageMsg, sensor_msgs::image_encodings::TYPE_16UC1)->image;
-        colorFrame = colorFrame(roi);
         
         // Update tracker objects
         for (int i = 0; i < cukeTrackers.size(); i++) {
@@ -138,7 +140,10 @@ void visionNode::draw3DBounding(cv::Rect bounding) {
     float box_width  = bounding.width;
     float box_height = bounding.height;
 
-    unsigned short frontDepth = depthFrame.at<unsigned short>(static_cast<int>(pixel_x + box_width/2), static_cast<int>(pixel_y + box_height/2));
+
+    unsigned short frontDepth = depthFrame.at<unsigned short>( static_cast<int>(pixel_y + box_height/2), static_cast<int>(pixel_x + box_width/2));
+
+    ROS_INFO("Checking depth at x : %d, y : %d , front depth : %d", static_cast<int>(pixel_x + box_width/2), static_cast<int>(pixel_y + box_height/2), frontDepth);
 
     // Points on plane on the front of the cucumber
     float point[3];
@@ -149,7 +154,7 @@ void visionNode::draw3DBounding(cv::Rect bounding) {
     pM.x = point[0];
     pM.y = point[1];
     pM.z = point[2];
-
+    
     // Top left
     compute3DPoint(pixel_x, pixel_y, frontDepth, point);
     pTL.x = point[0];
@@ -174,6 +179,8 @@ void visionNode::draw3DBounding(cv::Rect bounding) {
     pBR.y = point[1];
     pBR.z = point[2];
     
+    ROS_INFO("Cucumber detected at X : %f, Y : %f, Z : %f and front depth : %u", pM.x, pM.y, pM.z, frontDepth);
+
     cObj.id = "cucumber";
     cObj.header.frame_id = "camera_link";
 
@@ -181,8 +188,8 @@ void visionNode::draw3DBounding(cv::Rect bounding) {
     cObj.primitives.resize(1);
     cObj.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
     cObj.primitives[0].dimensions.resize(geometric_shapes::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::CYLINDER>::value);
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = pBL.y - pTL.y;
-    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] =(pTR.x - pTL.x)/2; 
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.3; 
+    cObj.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.02; 
 
     // Define the pose of the object
     cObj.primitive_poses.resize(1);
