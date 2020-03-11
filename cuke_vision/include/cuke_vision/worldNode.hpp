@@ -82,15 +82,12 @@ class worldNode {
         actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction>* fingerClient;
 
         // Planning interfaces for arm and gripper TODO should these be pointers?
-        moveit::planning_interface::MoveGroupInterface *armGroupInterface;
-        moveit::planning_interface::MoveGroupInterface *gripperGroupInterface;
+        boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> armGroupInterface;
+        boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> gripperGroupInterface;
         robot_model::RobotModelPtr robotModel;
 
         // Planning scene interface
-        moveit::planning_interface::PlanningSceneInterface *planningSceneInterface;
-
-        planning_scene_monitor::PlanningSceneMonitorPtr planningSceneMonitor;
-        planning_scene::PlanningScenePtr planningScene;
+        boost::scoped_ptr<moveit::planning_interface::PlanningSceneInterface> planningSceneInterface;
 
         // Model of robot
         moveit::core::RobotStatePtr currentRobotState;
@@ -132,4 +129,3 @@ class worldNode {
         void defineCartesianPose();
 
 };
-

@@ -49,11 +49,11 @@ worldNode::worldNode() {
     robotModel = robotModelLoader.getModel();
 
     // Construt a planning scene that maintains a state of the world
-    planningSceneInterface = new moveit::planning_interface::PlanningSceneInterface();
+    planningSceneInterface.reset(new moveit::planning_interface::PlanningSceneInterface());
 
     // Initialize the move group interface and planning scene interface
-    armGroupInterface = new moveit::planning_interface::MoveGroupInterface(armPlanningGroup);
-    gripperGroupInterface = new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup);
+    armGroupInterface.reset(new moveit::planning_interface::MoveGroupInterface(armPlanningGroup));
+    gripperGroupInterface.reset(new moveit::planning_interface::MoveGroupInterface(gripperPlanningGroup));
 
     armGroupInterface->setEndEffectorLink(robotType + "_end_effector");
     
@@ -86,11 +86,11 @@ worldNode::worldNode() {
         why = testCucumbers[1][i]; 
         zed = testCucumbers[2][i]; 
 
-        // Move to x position TODO test 
-        std_msgs::Float32 desiredWorldPositionMsg;
-        desiredWorldPositionMsg.data = ex;
-        positionControlPub.publish(desiredWorldPositionMsg);
-        ros::Duration(1.0).sleep();
+        // // Move to x position TODO test 
+        // std_msgs::Float32 desiredWorldPositionMsg;
+        // desiredWorldPositionMsg.data = ex;
+        // positionControlPub.publish(desiredWorldPositionMsg);
+        // ros::Duration(1.0).sleep();
 
         ROS_INFO("Picking cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
 
@@ -100,6 +100,8 @@ worldNode::worldNode() {
         removeCucumber();
         gripperAction(true);
     }
+
+    // ros::spin();
 }
 
 // World destructor
@@ -108,8 +110,8 @@ worldNode::~worldNode() {
     cObjPub.shutdown(); 
     aObjPub.shutdown(); 
 
-    delete armGroupInterface;
-    delete gripperGroupInterface;
+    // delete armGroupInterface;
+    // delete gripperGroupInterface;
     delete fingerClient;
 
 }
@@ -186,8 +188,10 @@ void worldNode::loadCucumbersFromFile() {
 
 void worldNode::addCucumber() {
 
-    ROS_INFO("Adding cuke");
+    ROS_INFO("Moving base and then adding cuke");
 
+    // Transform the point from the camera's coordinate frame to the current
+    // world coordinate frame
     tf::Stamped<tf::Point> point;
     tf::Stamped<tf::Point> point2;
     point.setX(ex);
@@ -196,7 +200,14 @@ void worldNode::addCucumber() {
     point.frame_id_ = "camera_aligned_depth_to_color_frame";
 
     listener.transformPoint("world", point, point2);
-    ROS_INFO("Transform result : %f, %f, %f ", point2.getX(), point2.getY(), point2.getZ());
+    ROS_INFO("Transform result (coordinates of cucumber in world frame): %f, %f, %f ", point2.getX(), point2.getY(), point2.getZ());
+
+    // Position the robot to pick the cucumber 
+    std_msgs::Float32 desiredWorldPositionMsg;
+    desiredWorldPositionMsg.data = point2.getX();
+    positionControlPub.publish(desiredWorldPositionMsg);
+
+    ros::Duration(1.0).sleep();
 
     //add target_cylinder
     cObj.id = "target_cylinder";
@@ -220,11 +231,6 @@ void worldNode::addCucumber() {
  
     planningSceneInterface->applyCollisionObject(cObj);
 
-    ros::Duration(2.0).sleep();
-
-    std_msgs::Float32 desiredWorldPositionMsg;
-    desiredWorldPositionMsg.data = point2.getX();
-    positionControlPub.publish(desiredWorldPositionMsg);
 }
 
 // Prints the current pose of the robot
@@ -334,16 +340,15 @@ void worldNode::objectCallback(const moveit_msgs::CollisionObject &objectMsg) {
     
 
     ex  = objectMsg.primitive_poses[0].position.x; 
-    why = objectMsg.primitive_poses[0].position.y;; 
-    zed = objectMsg.primitive_poses[0].position.z;; 
+    why = objectMsg.primitive_poses[0].position.y;
+    zed = objectMsg.primitive_poses[0].position.z;
 
     ROS_INFO("Cuke has been received with height: %f and radius: %f",
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT],
         objectMsg.primitives[0].dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS]);
-    ROS_INFO("Picking cucumber with coordinates : X : %f, Y : %f, Z : %f", ex, why, zed);
+    ROS_INFO("Picking cucumber with coordinates (aligned_depth_to_color_frame) : X : %f, Y : %f, Z : %f", ex, why, zed);
 
     addCucumber();
-    ros::Duration(2.0).sleep();
     pickCucumber(cObj);
     moveToGoal();
     removeCucumber();
@@ -386,9 +391,9 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     grasps[0].grasp_pose.header.frame_id = "root";
     q = EulerZYZtoQuaternion(M_PI/2, -M_PI/2, -M_PI/2);
     tf::quaternionTFToMsg(q, grasps[0].grasp_pose.pose.orientation);
-    grasps[0].grasp_pose.pose.position.x = ex;
-    grasps[0].grasp_pose.pose.position.y = why;
-    grasps[0].grasp_pose.pose.position.z = zed;
+    grasps[0].grasp_pose.pose.position.x = cucumber.primitive_poses[0].position.x;
+    grasps[0].grasp_pose.pose.position.y = cucumber.primitive_poses[0].position.y;
+    grasps[0].grasp_pose.pose.position.z = cucumber.primitive_poses[0].position.z;
 
     // Pre-grasp approach
     grasps[0].pre_grasp_approach.direction.header.frame_id = "m1n6s200_end_effector"; // TODO make constant
@@ -405,7 +410,7 @@ void worldNode::pickCucumber(const moveit_msgs::CollisionObject &cucumber) {
     defineGripperPosture( true,  grasps[0].pre_grasp_posture);
     defineGripperPosture( false, grasps[0].grasp_posture);
     ROS_INFO("Defined gripper postures.");
-    
+    ros::Duration(2.0).sleep();
     armGroupInterface->pick("target_cylinder", grasps);
 
     ROS_INFO("Finished picking");
