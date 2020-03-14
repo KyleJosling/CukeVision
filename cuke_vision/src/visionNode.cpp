@@ -14,6 +14,9 @@ visionNode::visionNode():
     colorImageSub(it, colorImageTopic, 1),
     depthImageSub(it, depthImageTopic, 1),
     sync(SyncPolicy(10), colorImageSub, depthImageSub) {
+
+    // Detected cucumber image publisher
+    detectedImagePub = it.advertise(detectedImageTopic, 1); 
     
     // Initialize cucumber publisher
     cucumberPub = nH.advertise<moveit_msgs::CollisionObject>(cucumberTopic, 10);
@@ -105,6 +108,10 @@ void visionNode::imageCallback(const sensor_msgs::ImageConstPtr &colorImageMsg, 
             }
             
         }
+
+        // Publish the image with the detected cucumbers in it
+        detectedMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", colorFrame).toImageMsg(); 
+        detectedImagePub.publish(detectedMsg);
 
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("Image encoding error %s", e.what());

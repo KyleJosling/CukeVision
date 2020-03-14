@@ -52,6 +52,7 @@ class visionNode {
         const std::string cameraInfoTopic = "/camera/aligned_depth_to_color/camera_info";
         const std::string colorImageTopic = "/camera/color/image_raw";
         const std::string depthImageTopic = "/camera/aligned_depth_to_color/image_raw";
+        const std::string detectedImageTopic = "detectedCucumbers";
         const std::string cucumberTopic = "cuke3D";
 
         // Constants
@@ -61,6 +62,11 @@ class visionNode {
         // Image transport subscriber
         image_transport::SubscriberFilter colorImageSub;
         image_transport::SubscriberFilter depthImageSub;
+
+        // Image transport publisher
+        image_transport::Publisher detectedImagePub;
+
+        // Cucumber publisher
         ros::Publisher cucumberPub;
 
         // Sync policy for synchronization
@@ -79,6 +85,7 @@ class visionNode {
         // Current frame and bounding boxes around cukes
         cv::Mat colorFrame;
         cv::Mat depthFrame;
+        sensor_msgs::ImagePtr detectedMsg;
         std::vector<cv::Rect> boxes;
 
         // Collision objects (cucumbers we have detected)

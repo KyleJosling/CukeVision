@@ -44,10 +44,6 @@ void cukeDetector::detectCukes( cv::Mat &frame, std::vector<cv::Rect> &boxes) {
 
     // Runs the forward pass to get output of the output layers
     std::vector<cv::Mat> outs;
-    // std::vector <cv::String> namez;
-    // for (int i = 0; i < (namez.size()); i++) {
-    //     std::cout << namez[i] << std::endl;
-    // }
     net.forward(outs, getOutputsNames(net));
 
     // Remove the bounding boxes with low confidence, publish message
