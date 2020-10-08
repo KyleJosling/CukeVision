@@ -6,10 +6,10 @@ This repository contains the code for an autonomous cucumber picker for use in h
 
 ## Dependencies
 
-Kinova ROS Driver: https://github.com/Kinovarobotics/kinova-ros 
-Realsense ROS  Driver: https://github.com/IntelRealSense/realsense-ros 
-OpenCV With Extras + Compiled with CUDA
-Eigen3
+- Kinova ROS Driver: https://github.com/Kinovarobotics/kinova-ros
+- Realsense ROS  Driver: https://github.com/IntelRealSense/realsense-ros
+- OpenCV With Extras + Compiled with CUDA
+- Eigen3
 
 
 
